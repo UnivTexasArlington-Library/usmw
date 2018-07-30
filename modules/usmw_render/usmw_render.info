@@ -1,0 +1,5 @@
+name = USMW Render
+description = Used to render USMW Page / Page Elements
+core = 7.x
+files[] = includes/db_access.inc
+

@@ -1,0 +1,5181 @@
+<?php
+
+
+module_load_include('inc', 'usmw_render', 'includes/db_access');
+
+
+/* hooks */
+
+function usmw_page_alter(&$page) {
+    
+    
+    $type = get_page_type(current_path());
+    
+    
+    if($type == 'topics_index') //topics index
+    {
+       $page['content'] = usmw_render_topics_index();
+       
+    }
+    
+    if($type == 'bios_index')
+    {
+        $page['content'] = usmw_render_bios_index();
+        
+    }
+   
+    if($type == 'contents_index') 
+    {
+       $page['content'] = usmw_render_contents_index();
+       
+    }
+    
+    if($type == 'item')
+    {
+       $page['content'] = usmw_render_item_page('item');
+       
+    }
+    
+    if($type == 'record') //record page
+    {
+       $page['content'] = usmw_render_item_page('record');
+       
+    }
+    
+    if($type == 'translation')
+    {
+       $page['content'] = render_translation();
+        
+    }
+    
+    if($type == 'transcription') 
+    {
+       $page['content'] = render_transcription();
+        
+    }
+    
+    if($type == 'format')
+    {
+       $page['content'] = render_format();
+        
+    }
+    
+    if($type == 'topic_format')
+    {
+       $page['content'] = render_topic_format();
+       
+    }
+    
+    if($type == 'topic') 
+    {
+       $page['content'] = usmw_render_topic_page();
+        
+    }
+    
+    if($type == 'advanced_search')
+    {
+       $page['content'] = render_advanced_search();
+        
+        
+    }
+    
+    if($type == 'advanced_search_results')
+    {
+       $page['content'] = render_advanced_search_results();
+        
+    }
+    
+    if($type == 'main_search')
+    {
+       $page['content'] = render_main_search();
+        
+    }
+    
+    if(drupal_is_front_page())
+    {
+       $page['content'] = render_home_page();
+       
+    }
+    
+    
+    if($type == 'developer')
+    {
+       //$page['content'] = render_developer_page();
+       
+    }
+    
+    
+    
+}
+
+
+function get_page_type($path)
+{
+    
+    if($path == 'node/16') //topics index
+    {
+       return 'topics_index';
+    }
+    
+    if($path == 'node/3466')
+    {
+        return 'bios_index';
+    }
+   
+    if($path == 'node/188') 
+    {
+       return 'contents_index';
+    }
+    
+    if($path == 'node/1603') //item page
+    {
+       return 'item';
+    }
+    
+    if($path == 'node/3463') //record page
+    {
+       return 'record';    
+    }
+    
+    if($path == 'node/3325')
+    {
+       return 'translation';
+    }
+    
+    if($path == 'node/3326') 
+    {
+       return 'transcription';    
+    }
+    
+    if($path == 'node/3464')
+    {
+        
+       return 'format';
+    }
+    
+    if($path == 'node/3324')
+    {
+        
+       return 'topic_format';
+    }
+    
+    if($path == 'node/1604') 
+    {
+       return 'topic';
+    
+    }
+    
+    
+    if($path == 'node/3471') //contents index
+    {
+      return 'advanced_search';
+      
+    }
+    
+    if($path == 'node/3470')
+    {
+       return 'advanced_search_results'; 
+    }
+    
+    
+    if($path == 'node/3468') //contents index
+    {
+       return 'main_search';
+    }
+    
+    /*
+    if($path == 'search_beta') //contents index
+    {
+       return 'search_beta';
+    }
+    */
+    
+    if($path == 'developer') //contents index
+    {
+       return 'developer';
+    }
+    
+    return 'not_found';
+}
+
+
+
+
+function usmw_get_nodes_by_type($t)
+{
+    //node_delete_multiple
+    
+    $nids = db_select('node', 'n')
+    ->fields('n', array('nid'))
+    ->condition('type', $t, '=')
+    ->execute()
+    ->fetchCol();
+    
+    return $nids;
+}
+
+
+function usmw_render_topics_index()
+{
+    $t = usmw_get_nodes_by_type('usmw_topic');
+    $topics = node_load_multiple($t);
+    
+    
+    $h = '';
+
+    $h .= count($t) . ' topics <br>';
+ 
+    forEach($topics as $topic) {
+        
+        $thumb = $topic->field_topic_thumbnail[LANGUAGE_NONE][0]['value'];
+        
+        if($thumb != '')
+        {
+            $thumb = site_root() . $thumb;
+        }
+        
+        else {
+            
+           $thumb = '/themes/usmw/images/Topic_NoThumb.png';
+        }
+        
+        $h .= '<div class="topic_row" style="clear:both;">';
+        $h .= '<div style="display:inline-block;"><img class="thumbnail-img" src="'.$thumb .'" width="150"></div>';
+        
+        $h .= '<div style="display:inline-block;vertical-align:middle;">';
+        
+        $h .= '<a href="/topic?topic_id='. $topic->field_topic_id[LANGUAGE_NONE][0]['value'] .'">';
+        
+        
+        $h .= $topic->field_topic_name[LANGUAGE_NONE][0]['value'];
+        $h .= '</a>';
+        $h .= '</div>';
+        
+        $h .= '</div>';
+        
+    }
+    
+    
+    return $h;
+    
+    
+}
+
+
+
+
+function usmw_render_topic_page()
+{
+    
+    
+    $h = '';
+    
+    if(!isset($_GET['topic_id']))
+    {
+        //return 'topic not found';
+        return render_major_topics();
+    }
+    
+    $topic_id = $_GET['topic_id'];
+    
+    
+    $major_topics = get_major_topics();
+    $major_topic = null;
+    
+    forEach($major_topics as $t)
+    {
+       
+       if($topic_id == $t->intro)
+       {
+           $major_topic = $t;
+       }
+       
+    }
+    
+    
+    
+    
+    $h .= '<div>';
+    
+    if($major_topic)
+    {
+        $h .= render_topic_intro($major_topic);
+    }
+    else{
+        
+        $nid = db_access_get_nid_by_topic_id($topic_id);
+        $topic = node_load($nid);
+        
+        if(!$topic)
+        {
+            $h .= 'Topic ' . $topic_id . ' not found';
+            return $h;
+        }
+        
+        $h .= render_topic($topic);
+    }
+    
+    
+    
+    $h .= '</div>';
+    
+    
+    return $h;
+    
+}
+
+
+function usmw_render_bios_index()
+{
+    $b = usmw_get_nodes_by_type('usmw_bio');
+    $bios = node_load_multiple($b);
+    
+    $h = '';
+
+    $h .= count($bios) . ' bios <br>';
+    
+    forEach($bios as $bio)
+    {
+        
+        //$h .= json_encode($bio);
+        
+        
+        $thumb = $bio->field_bio_thumbnail[LANGUAGE_NONE][0]['value'];
+        
+        if($thumb != '')
+        {
+            $thumb = media_prefix1($thumb);
+        }
+        
+        
+        else {
+            
+           $thumb = '/themes/usmw/images/Topic_NoThumb.png';
+        }
+        
+        
+        $name = bio_name($bio);
+        
+        
+        $nation = $bio->field_bio_nationality[LANGUAGE_NONE][0]['value'];
+        
+        if($nation == 'U.S.')
+        {
+            $nation = 'US';
+        }
+        
+        
+        $col1 = '<a href="/item?bio_id='. $bio->field_bio_id[LANGUAGE_NONE][0]['value'] .'&nation='.$nation.'"><img class="thumbnail-img" src="'.$thumb .'" width="150"></a>';
+        
+        $col2 = '<a href="/item?bio_id='. $bio->field_bio_id[LANGUAGE_NONE][0]['value'] .'&nation='.$nation.'">';
+        $col2 .= $name;
+        $col2 .= '</a>';
+        
+        
+        $h .= two_column($col1, $col2);
+        
+        
+        
+    }
+    
+    
+    return $h;
+    
+}
+
+
+function usmw_render_contents_index()
+{
+    $c= usmw_get_nodes_by_type('usmw_content');
+    $contents = node_load_multiple($c);
+    
+    
+    $h = '';
+
+    $h .= count($contents) . ' contents <br>';
+    
+    forEach($contents as $content) {
+        
+        
+        $thumb = $content->field_content_thumbnail[LANGUAGE_NONE][0]['value'];
+        
+        if($thumb != '')
+        {
+            $thumb = media_prefix1($thumb);
+        }
+        
+        
+        else {
+            
+           $thumb = '/themes/usmw/images/Topic_NoThumb.png';
+        }
+        
+        
+        $col1 = '<a href="/item?content_id='. $content->field_content_id[LANGUAGE_NONE][0]['value'] .'"><img class="thumbnail-img" src="'.$thumb .'" width="150"></a>';
+        
+        $col2 = '<a href="/item?content_id='. $content->field_content_id[LANGUAGE_NONE][0]['value'] .'">';
+        $col2 .= '#' . $content->field_content_id[LANGUAGE_NONE][0]['value'] . ' ' . $content->field_content_title[LANGUAGE_NONE][0]['value'];
+        $col2 .= '</a>';
+        
+        
+        $h .= two_column($col1, $col2);
+        
+        
+        
+    }
+    
+    
+    return $h;
+    
+    
+}
+
+function usmw_render_item_page($type)
+{
+    $h = '';
+    drupal_set_title('');
+    
+    
+    $b = get_bio_node();
+    
+    if($b)
+    {
+       $h = render_bio_content($b, $type);
+       
+    }
+
+    else 
+    {
+        $c = get_content_node();
+        if(!$c)
+        {
+           return 'content not found';
+        }
+        
+        
+        $f = format_name($c->field_format_id["und"][0]["value"]);
+        
+        if($f === 'Essays')
+        {
+            $h = render_essay_content($c, $type);
+        }
+        
+    
+        else
+        {
+            $h .= usmw_render_record_page($type);
+        }
+    }
+    
+    return $h;
+}
+
+
+function usmw_render_record_page($type)
+{
+    $h = '';
+    
+    $h .= hide_default_breadcrumbs();
+    
+    //$bio_id = null;
+    $content_id = null;
+    $format_id = null;
+    $topic_id = null;
+    $nid = null;
+    
+    
+    if(!isset($_GET['content_id']))
+    {
+        return 'content not found';
+    }
+    
+    else {
+        $content_id = $_GET['content_id'];
+    }
+    
+    if(isset($_GET['format_id']))
+    {
+        $format_id = $_GET['format_id'];
+    }
+    
+    if(isset($_GET['topic_id']))
+    {
+        $topic_id = $_GET['topic_id'];
+    }
+    
+    
+    $nid = db_access_get_nid_by_content_id((int)$content_id);
+    
+    
+    if(!$nid) //assuming not node 0
+    {
+        return 'content not found';
+    }
+    
+    
+    $item = node_load($nid);
+      
+    if(!$item && $content_id)
+    {
+        $h .= 'content ' . $content_id . ' not found';
+        return $h;
+    }
+
+    $h .= '<div>';
+
+    $breadcrumbs = [];
+    
+    if($format_id)
+    {
+       $e = new usmw_menu_element('#', '-');
+       $e->link = '#';
+       $e->label = 'hi';
+       
+       array_push($breadcrumbs, usmw_get_menu_element('format', $format_id));
+       array_push($breadcrumbs, new usmw_menu_element(null, $item->field_content_title[LANGUAGE_NONE][0]['value']));
+       
+       
+    }
+    
+    //echo $topic_id . ' ' . $format_id . ' c' . $content_id;
+    
+    if($topic_id && $format_id)//linked from topic format list
+    {
+
+        $nid = db_access_get_nid_by_topic_id($topic_id);
+        $t = node_load($nid);
+
+        $h .= topic_breadcrumbs($t, $format_id, $content_id, null);
+        
+    }
+    else {
+        
+        $h .= render_breadcrumbs($breadcrumbs);
+    }
+    
+    
+    
+    $h .= render_content($item, $type);
+    
+    
+    $h .= '</div>';
+    
+    
+    
+    $h .= render_prev_next_content();
+    
+    $h .= '<div>' . usmw_footer_seal() . '</div>';
+    
+    
+
+    return $h;
+    
+}
+
+function render_prev_next_content()
+{
+    $h = '';
+    
+    if(isset($_GET['topic_id']) && isset($_GET['format_id']) && isset($_GET['ofst']))
+    {
+        
+        $topic_format_contents = get_topic_format_contents();
+        //echo json_encode($topic_format_contents);
+        
+        if($topic_format_contents)
+        {   
+            
+            $h .= get_prev_next_content($topic_format_contents, (int)$_GET['ofst']);
+            
+        }
+        
+        
+    }
+    
+    else if(isset($_GET['format_id']) && isset($_GET['ofst']))
+    {
+        
+        $format_contents = get_format_contents();
+
+        if($format_contents)
+        {   
+            $h .= get_prev_next_format($format_contents, (int)$_GET['ofst']);
+        
+        }
+        
+        
+    }
+    
+    return $h;
+}
+
+function render_content($c, $type)
+{
+    $is_item = true;
+    $is_record = false;
+    if($type == 'record') //record
+    {
+        $is_item = false;
+        $is_record = true;
+    }
+    
+    //echo '<br>page type ' . $type;
+    
+    drupal_set_title('');
+    
+    
+
+    $h = '';
+    
+    
+    $links = '';
+    
+    if($c->field_content_pdf[LANGUAGE_NONE][0]['value'] != '')
+    {
+    
+        $links .= '<br><strong><a href="'.media_prefix1($c->field_content_pdf[LANGUAGE_NONE][0]['value']).'" target="blank" class="view">View PDF</a></strong>';
+    }
+    
+    if($c->field_content_translation[LANGUAGE_NONE][0]['value'] != '')
+    {
+        $links .= '<br><strong><a href="/translation?content_id='.$c->field_content_id[LANGUAGE_NONE][0]['value'].'" class="view">View Translation</a></strong>';
+    }
+    
+    if($c->field_content_transcription[LANGUAGE_NONE][0]['value'] != '')
+    {
+        $links .= '<br><strong><a href="/transcription?content_id='.$c->field_content_id[LANGUAGE_NONE][0]['value'].'" class="view">View Transcription</a></strong>';
+    }
+    
+    //record.php?content_id=65
+    
+    
+    if($is_item)
+    {
+        $links .= '<br><strong><a href="/record?content_id='.$c->field_content_id[LANGUAGE_NONE][0]['value'].'" class="view">View Full Record</a></strong>';
+        
+    }
+    
+    if($is_record)
+    {
+        $links .= '<br><strong><a onclick="history.back(-1)" class="view">View Short Record</a></strong>';
+        
+    }
+    
+    
+    $links .= '<br><strong><a href="mailto:'.contact_email().'">Send a correction</a></strong>';
+    
+    
+    
+    $h .= standard_content_page_thumbnail($c, $links);
+    
+    
+    
+    //render transcription
+    
+    
+    $h .= '<div class="right-column">';
+    
+    $h .= usmw_title($c->field_content_title, 'Full Title');
+    
+    
+    $h .= usmw_edit_link($c);
+    
+    //$creators = $c->field_content_creator[LANGUAGE_NONE][0]['value'] . ' ; ' . $c->field_content_contributor[LANGUAGE_NONE][0]['value'];
+    
+    
+    if($is_record)
+    {
+        $h .= '<br><h2>Full Record View</h2>';
+    
+        $h .= usmw_field_wrap($c->field_content_id, 'Content Id');
+    
+        $h .= usmw_field_wrap($c->field_content_title, 'Full Title');
+    }
+    
+    
+    
+    
+    if($c->field_content_time_coverage_star[LANGUAGE_NONE][0]['value'] != '')
+    {
+        
+        
+        $coverage_date = reformat_date_coverage($c->field_content_time_coverage_star, $c->field_content_time_coverage_end, $c->field_content_time_approx);
+        
+        
+        if($coverage_date != '')
+        {
+            if(strpos($coverage_date, '*') !== false)
+            {
+                $coverage_date = str_replace('*', '', $coverage_date);
+                $h .= usmw_field_render($coverage_date, 'Approximate Date');
+                
+            }
+            else {
+                $h .= usmw_field_render($coverage_date, 'Date');
+            }
+        }
+    }
+    
+    
+    
+    
+    
+    if($c->field_content_creator[LANGUAGE_NONE][0]['value'] != '' && $c->field_content_contributor[LANGUAGE_NONE][0]['value'] != '')
+    {
+        $creators = $c->field_content_creator[LANGUAGE_NONE][0]['value'] . ' ; ' . $c->field_content_contributor[LANGUAGE_NONE][0]['value'];
+        
+        $h .= usmw_field_render($creators, 'Author(s)');
+    }
+    
+    
+    //und is not present, is empty array, fixes 'Undefined index: und' warning
+    if(isset($c->field_content_topics_list) && $c->field_content_topics_list != array())
+    { 
+       $h .= usmw_field_render(topic_links($c->field_content_topics_list[LANGUAGE_NONE][0]['value']), 'Topics ');
+    }
+    
+    
+    $h .= usmw_field_wrap($c->field_content_translated_title, 'Translated Title(s)');
+    
+    
+    if($is_record)
+    {
+        if($c->field_content_pub_date != '0000-00-00' && $c->field_content_pub_date[LANGUAGE_NONE][0]['value'] != '')
+        {
+            //$h .= $c->field_content_pub_date[LANGUAGE_NONE][0]['value'] . ' | ' . reformat_date_published($c->field_content_pub_date) . ' | ';
+            $h .= usmw_field_render(reformat_date_published($c->field_content_pub_date[LANGUAGE_NONE][0]['value']), 'Publication Date');
+        }
+        
+        $h .= usmw_field_wrap($c->field_content_pub_place, 'Publication Place');
+        
+        $h .= usmw_field_wrap($c->field_content_publisher, 'Publisher');
+    
+        $h .= usmw_field_wrap($c->field_content_editor, 'Editor');
+    
+        if($c->field_content_start_page[LANGUAGE_NONE][0]['value'] != "")
+        {
+            $pages = $c->field_content_start_page[LANGUAGE_NONE][0]['value'] . ' - ' . $c->field_content_end_page[LANGUAGE_NONE][0]['value'];
+            $h .= usmw_field_render($pages, 'Inclusive Pages');
+        }
+    
+        $h .= usmw_field_wrap($c->field_content_source_journal_vol, 'Journal Volume');
+    
+        $h .= usmw_field_wrap($c->field_c_source_journal_issue, 'Journal Issue');
+    
+        if($c->field_c_source_catalog_link[LANGUAGE_NONE][0]['value'] != "")
+        {
+            $h .= '<a href="'.$c->field_c_source_catalog_link[LANGUAGE_NONE][0]['value'].'">'. $c->field_c_source_catalog_link[LANGUAGE_NONE][0]['value'] . '</a>';
+        }
+        
+        if($c->field_content_source_access_link[LANGUAGE_NONE][0]['value'] != "")
+        {
+            $h .= '<a href="'.$c->field_content_source_access_link[LANGUAGE_NONE][0]['value'].'">'. $c->field_content_source_access_link[LANGUAGE_NONE][0]['value'] . '</a>';
+        }
+    
+        $h .= usmw_field_wrap($c->field_c_image_printing_place, 'Printing Place');
+        
+        $h .= usmw_field_wrap($c->field_content_image_printer, 'Image Printer');
+        
+        $h .= usmw_field_wrap($c->field_content_source_title, 'Source Title');
+        
+        $h .= usmw_field_wrap($c->field_content_source_alt_title, 'Source Alternate Title');
+        
+        $h .= usmw_field_wrap($c->field_content_source_author, 'Source Author');
+        
+        $h .= usmw_field_wrap($c->field_content_source_publisher, 'Source Publisher');
+        
+        $h .= usmw_field_wrap($c->field_content_source_pub_place, 'Source Publication Place');
+        
+        $h .= usmw_field_wrap($c->field_content_source_pub_date, 'Source Publication Date');
+    
+        $h .= usmw_field_wrap($c->field_content_language, 'Language');
+    }
+    
+    
+    $h .= usmw_field_render(format_name($c->field_format_id["und"][0]["value"]), 'Format');
+    
+    
+    if($is_record)
+    {
+        
+        $h .= usmw_field_wrap($c->field_content_format_notes, 'Format Notes');
+        
+        $h .= usmw_field_wrap($c->field_c_physical_characteristics, 'Physical Characteristics');
+        
+    }
+    
+    
+    if($is_item)
+    {
+        $h .= usmw_field_render(render_item_publication_information($c), 'Publication Information');
+    }
+    
+    $h .= usmw_field_wrap($c->field_content_collection, 'Collection');
+    
+    $h .= usmw_field_wrap($c->field_content_call_number, 'Call Number');
+
+    $h .= usmw_field_wrap($c->field_content_description, 'Description');
+    
+    
+    if($is_record)
+    {
+        $h .= usmw_field_render('<a href="'.$c->field_content_preservation[LANGUAGE_NONE][0]['value'] .'">' . $c->field_content_preservation[LANGUAGE_NONE][0]['value'] . '</a>', 'Preservation Link');
+        
+        $h .= usmw_field_wrap($c->field_content_image_identifier, 'Unique Identifier');
+        
+        $h .= usmw_field_link($c->field_content_image_url, 'Image Link');
+        
+        $h .= usmw_field_link($c->field_content_thumbnail, 'Thumbnail Link');
+        
+        $h .= usmw_field_link($c->field_content_pdf, 'PDF Link');
+        
+        $h .= usmw_field_link($c->field_content_file, 'File Link');
+        
+        $h .= usmw_field_link($c->field_content_transcription, 'Transcription Path');
+        
+        $h .= usmw_field_link($c->field_content_translation, 'Translation Path');
+        
+        $h .= usmw_field_wrap($c->field_content_related_items, 'Related Items');
+    }
+    
+    
+    //$h .= '</div>';
+    //$h .= '</div>';
+    
+    //$h .= '<div>' . usmw_footer_seal() . '</div>';
+    
+    
+    return $h;
+    
+    
+}
+
+
+
+
+
+function render_topic($t)
+{
+    //todo
+    
+    
+    $h = '';
+    $h .= hide_default_breadcrumbs();
+    
+    drupal_set_title('');
+    
+    
+    $h .= topic_breadcrumbs($t, null, null, null);
+    
+    $h .= '<div>';
+    
+    
+    
+    $h .= '<div class="topic_thumbnail_wrapper">';
+    
+    if(isset($t->field_topic_image_url[LANGUAGE_NONE][0]['value']) && $t->field_topic_image_url[LANGUAGE_NONE][0]['value'] != "")
+    {
+        $h .= '<a class="topic_thumbnail" href="'.media_prefix1($t->field_topic_image_url[LANGUAGE_NONE][0]['value']).'"><img src="'.media_prefix1($t->field_topic_image_url[LANGUAGE_NONE][0]['value']).'" align="left" alt="" height="170"></a>';
+    }
+    
+    
+    
+    $h .= '</div>';
+    
+    
+    $h .= usmw_title($t->field_topic_name, 'Full Title');
+    
+    $h .= usmw_edit_link($t);
+    
+    $h .= content_links_by_topic_id($t->field_topic_id[LANGUAGE_NONE][0]['value']);
+    
+    $h .= '<br><br>';
+    
+    
+    $h .= '<p>' . usmw_topic_dates($t->field_topic_start_date[LANGUAGE_NONE][0]['value'], $t->field_topic_end_date[LANGUAGE_NONE][0]['value']) . '</p>';
+    
+    
+    $h .= '<p>' . $t->field_topic_description[LANGUAGE_NONE][0]['value'] . '</p>';
+    
+    
+    $h .= '</div>';
+    
+    $h .= '<br><br><br>';
+    
+    $h .= usmw_footer_seal();
+    
+    return $h;
+    
+}
+
+
+function render_major_topics()
+{
+    drupal_set_title('');
+    
+    //topic list duplicated from the original https://library.uta.edu/usmexicowar/topic.php 
+
+    $topics_list = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,
+                    36,37,38,48,49,50,51,52,53,39,40,44,45,46,47,42,43];
+                    
+    
+    $nids = db_access_get_nid_by_topic_ids($topics_list);
+    $topics = node_load_multiple($nids);
+
+    $h = '';
+    
+    
+    forEach($topics as $t)
+    {
+        $h .= render_topic_listing($t,2);
+        //$h .= '<br>' . json_encode($m);
+    }
+    
+    
+    return $h;
+}
+
+
+function render_topic_intro($major_topic)
+{
+    $h = '';
+    $h .= hide_default_breadcrumbs();
+    
+    drupal_set_title('');
+    
+    //breadcrumbs
+    $h .= '<div class="breadcrumbs">';
+    $h .=  '<a href="'.site_root().'/topic">Major Topics</a> &gt' . $major_topic->label . ': Introduction';
+    $h .= '</div>';
+    
+    $h .= '<div>';
+    
+    $h .= '<h1>'.$major_topic->label.'</h1>';
+    
+    $intro_text = site_root() . '/collections/history/'.$major_topic->intro.'.html';
+    
+    $h .= file_get_contents($intro_text);
+    
+    
+    //$nids = db_access_list_to_ids($major_topic->topics);
+    $ids = db_access_list_to_ids($major_topic->topics);
+    $nids = db_access_get_nid_by_topic_ids($ids);
+    
+    $topics = node_load_multiple($nids);
+    
+    //$h .= json_encode($topics);
+    
+    forEach($topics as $t)
+    {
+        
+        //$h .= $t->field_topic_name[LANGUAGE_NONE][0]['value'];
+        
+        
+        $thumb = $t->field_topic_thumbnail[LANGUAGE_NONE][0]['value'];
+        
+        
+        if($thumb != '')
+        {
+             $thumb = media_prefix1($thumb);
+        }
+        
+        
+        else {
+            
+           $thumb = site_root() . '/themes/usmw/images/Topic_NoThumb.png';
+        }
+        
+        
+        $col1 = '<div class="col1 center_wrapper"><a href="/topic?topic_id='. $t->field_topic_id[LANGUAGE_NONE][0]['value'] .'"><img class="thumbnail-img" src="'.$thumb .'" width="150"></a></div>';
+        
+        $col2 = '<a href="/topic?topic_id='. $t->field_topic_id[LANGUAGE_NONE][0]['value'] .'">';
+        $col2 .= $t->field_topic_name[LANGUAGE_NONE][0]['value'];
+        $col2 .= '</a>';
+        
+        $col3 = '<div class="col3 center_wrapper"></div>';
+        
+        $h .= three_column($col1, $col2, $col3);
+        
+        
+    }
+    
+    
+    $h .= '</div>';
+    
+    $h .= usmw_footer_seal();
+    
+    return $h;
+    
+}
+
+
+function render_item_publication_information($content)
+{
+    
+    $h = '';
+    
+    //$h .= usmw_unset_empty($field);
+    
+    //if($content->field_content_source_title, 'Source Title')
+    
+    if(usmw_validator($content->field_content_source_title) != "")
+    {
+        $h .= usmw_validator($content->field_content_source_title) . '.';
+    }
+    
+    if(usmw_validator($content->field_content_publisher) != "")
+    {
+        $h .= '&nbsp; Published by:' . usmw_validator($content->field_content_publisher);
+    }
+    
+    if(usmw_validator($content->field_content_pub_place) != "")
+    {
+        if($h != '') 
+        {
+            $h .= ', ';
+        }
+        $h .= usmw_validator($content->field_content_pub_place);
+    }
+    
+    if(reformat_date_published($content->field_content_pub_date[LANGUAGE_NONE][0]['value']) != "")
+    {
+       if($h != '') 
+        {
+            $h .= ', ';
+        } 
+       $h .= reformat_date_published($content->field_content_pub_date[LANGUAGE_NONE][0]['value']);
+    }
+    
+    
+    $h .= '.';
+    
+    return $h;
+    
+    
+}
+
+function render_transcription()
+{
+
+   $c = get_content_node();
+   if(!$c)
+   {
+       return 'content not found';
+   }
+   
+   $h = '';
+   
+   $h .= drupal_set_title('');
+   
+   $h .= sub_content_breadcrumbs($c, 'transcription');
+   
+   $h .= usmw_title($c->field_content_title, '');
+   
+   $transcription= 'collections/' . explode('collections/', $c->field_content_transcription[LANGUAGE_NONE][0]['value'])[1];
+   
+   
+   
+   $h .= file_get_contents($transcription);
+    
+   $h .= usmw_footer_seal();    
+   
+   return $h;
+   
+
+}
+
+
+function render_essay_content($c, $type)
+{
+   
+   $h = '';
+   
+   $is_item = true;
+   $is_record = false;
+   if($type == 'record') //record
+   {
+        $is_item = false;
+        $is_record = true;
+   }
+    
+    
+    $format_id = null;
+    $topic_id = null;
+
+    
+    if(isset($_GET['format_id']))
+    {
+        $format_id = $_GET['format_id'];
+    }
+    
+    if(isset($_GET['topic_id']))
+    {
+        $topic_id = $_GET['topic_id'];
+    }
+   
+    $essay = site_root(). $c->field_content_file[LANGUAGE_NONE][0]['value'];
+    
+    $breadcrumbs = [];
+    
+
+    if($format_id)
+    {
+       $e = new usmw_menu_element('#', '-');
+       $e->link = '#';
+       $e->label = 'hi';
+       
+       array_push($breadcrumbs, usmw_get_menu_element('format', $format_id));
+       array_push($breadcrumbs, new usmw_menu_element(null, $c->field_content_title[LANGUAGE_NONE][0]['value']));
+       
+       
+    }
+    
+    
+    if($topic_id && $format_id)//linked from topic format list
+    {
+        
+        $nid = db_access_get_nid_by_topic_id($topic_id);
+        $t = node_load($nid);
+        
+        $h .= topic_breadcrumbs($t, $format_id, (int)$_GET['content_id'], null);
+        
+    }
+    else {
+        $h .= render_breadcrumbs($breadcrumbs);
+    }
+   
+   
+   
+   
+   
+   //echo('<br>'. $essay);
+   
+   $links = '';
+   
+   if($is_item)
+    {
+        $links .= '<br><strong><a href="/record?content_id='.$c->field_content_id[LANGUAGE_NONE][0]['value'].'" class="view">View Full Record</a></strong>';
+        
+    }
+    
+    if($is_record)
+    {
+        $links .= '<br><strong><a onclick="history.back(-1)" class="view">View Short Record</a></strong>';
+        
+    }
+   
+   $h .= standard_content_page_thumbnail($c, $links);
+   
+   
+   $h .= usmw_title($c->field_content_title, 'Full Title');
+   
+   $h .= usmw_edit_link($c);
+   
+   
+   if($is_record)
+    {
+        $h .= '<h2>Full Record View</h2>';
+
+    }
+   
+   $h .= '<p><strong>Topic</strong>- '.topic_links($c->field_content_topics_list[LANGUAGE_NONE][0]['value']).'</p>';
+   
+   
+   $h .= file_get_contents($essay);
+   
+   $h .= render_prev_next_content();
+   
+   $h .= usmw_footer_seal();
+   
+   return $h;
+    
+}
+
+
+function render_bio_content($b, $type)
+{
+    //record mode 
+    
+    $h = '';
+    $bio_img = null;
+    
+    
+    $is_item = true;
+    $is_record = false;
+    if($type == 'record') //record
+    {
+        $is_item = false;
+        $is_record = true;
+    }
+    
+    
+    $bio = null;
+    
+    $links = '';
+    
+    $h .= hide_default_breadcrumbs();
+    
+    
+    $nation = null;
+    
+    if(isset($_GET['topic_id']) && isset($_GET['format_id']))
+    {
+        
+        $topic_nid = db_access_get_nid_by_topic_id((int)$_GET['topic_id']);
+        $t = node_load($topic_nid);
+        
+    
+        $h .= topic_breadcrumbs($t, (int)$_GET['format_id'], null, (int)$_GET['bio_id']);
+        
+    }
+    
+    else {
+    
+        $breadcrumbs = '';
+        
+        //<div class="breadcrumbs"><a href="format?format_id=8">Images</a>&gt;Storming of Independence Hill at the Battle of Monterey</div>
+        
+        if(isset($_GET['nation']))
+        {
+            $nation = $_GET['nation'];
+    
+            if($nation == 'Mexico')
+            {
+                $breadcrumbs .= '<div class="breadcrumbs"><a href="'.site_root().'/format?format_id=10&nation=Mexico">People - Mexico</a>&gt;'.bio_name($b).'</div>';
+            }
+            
+            else if($nation == 'US')
+            {
+                $breadcrumbs .= '<div class="breadcrumbs"><a href="'.site_root().'/format?format_id=10&nation=US">People - US</a>&gt;'.bio_name($b).'</div>';
+            }
+            
+            
+        }
+        
+        $h .= $breadcrumbs;
+    
+    }
+    
+    
+    if(isset($b->field_bio_file[LANGUAGE_NONE][0]['value']) && $b->field_bio_file[LANGUAGE_NONE][0]['value'] != "")
+    {
+        //$bio = site_root(). '/collections/history/' . explode('history/', $b->field_bio_file[LANGUAGE_NONE][0]['value'])[1];
+        $bio = site_root() . $b->field_bio_file[LANGUAGE_NONE][0]['value'];
+        
+    }
+    
+    
+    
+    if($is_item)
+    {
+        $links .= '<br><strong><a href="/record?bio_id='.(string)$b->field_bio_id[LANGUAGE_NONE][0]['value'].'" class="view">View Full Record</a></strong>';
+        
+    }
+    
+    if($is_record)
+    {
+        $links .= '<br><strong><a onclick="history.back(-1)" class="view">View Short Record</a></strong>';
+        $links .= '<br><strong><a href="mailto:'.contact_email().'">Send a correction</a></strong>';
+    
+    }
+    
+    
+    
+    
+    if(isset($b->field_bio_image_url[LANGUAGE_NONE][0]['value']) && $b->field_bio_image_url[LANGUAGE_NONE][0]['value'] != "")
+    {
+        
+        $bio_img = site_root(). $b->field_bio_image_url[LANGUAGE_NONE][0]['value'];
+        $h .= standard_thumbnail($bio_img, '', $links);
+        
+    }
+    else {
+        //do nothing
+        
+    }
+    
+    $col_extra = '';
+    
+    if(!$bio_img)
+    {
+        $col_extra = 'style="width:100%;margin-left:0px;"';
+    }
+    
+    $h .= '<div class="right-column" '.$col_extra.'>';
+    
+    $h .= '<h1>' . bio_name($b) .'</h1>';
+    
+    $h .= usmw_edit_link($b);
+    
+    
+    if( isset($b->field_bio_birth_date[LANGUAGE_NONE][0]['value']) && $b->field_bio_birth_date[LANGUAGE_NONE][0]['value'] != "" &&
+        isset($b->field_bio_death_date[LANGUAGE_NONE][0]['value']) && $b->field_bio_death_date[LANGUAGE_NONE][0]['value'] != "")
+    {
+        
+        $h .= '<p><em>' . usmw_bio_date($b->field_bio_birth_date[LANGUAGE_NONE][0]['value'], $b->field_bio_death_date[LANGUAGE_NONE][0]['value']) . '</em></p>';
+        
+    }
+    
+    
+    $h .= usmw_field_render(topic_links($b->field_bio_topic_list[LANGUAGE_NONE][0]['value']), 'Topic ');
+    
+    
+    if($is_record)
+    {
+    
+        $h .= usmw_field_wrap($b->field_bio_id, 'Bio ID');
+       
+        $h .= usmw_field_wrap($b->field_bio_gender, 'Gender');
+       
+        $h .= usmw_field_wrap($b->field_bio_nationality, 'Nationality');
+       
+        
+        $h .= usmw_field_link($b->field_bio_image_url, 'Image Link');
+        
+        $h .= usmw_field_link($b->field_bio_thumbnail, 'Thumbnail Link');
+     
+        
+        $h .= usmw_field_link($b->field_bio_file, 'File Path');
+        
+    }
+    
+    if($bio)
+    {
+        $h .= file_get_contents($bio);
+    }
+    
+    
+    
+    if(isset($_GET['topic_id']) && isset($_GET['format_id']) && isset($_GET['ofst']))
+    {
+        
+        $topic_format_bios = get_topic_format_bios();
+        //echo json_encode($topic_format_contents);
+        
+        if($topic_format_bios)
+        {   
+            
+            //$h .= get_prev_next_content($topic_format_contents, (int)$_GET['ofst']);
+            $h .= get_prev_next_bio($topic_format_bios, (int)$_GET['ofst']);
+            
+        }
+        
+        
+    }
+    
+    else if(isset($_GET['ofst']))
+    {
+        $format_bios = get_format_bios();
+        
+        if($format_bios)
+        {
+            $h .= get_prev_next_format_bio($format_bios, (int)$_GET['ofst']);
+        }
+    }
+    
+    $h .= '</div>';
+    
+    $h .= '<div style="clear:both;"></div>';
+    
+    $h .= usmw_footer_seal();
+   
+    return $h;
+    
+}
+
+
+
+function render_translation()
+{
+   $c = get_content_node();
+   if(!$c)
+   {
+       return 'content not found';
+   }
+   
+   $h = '';
+   
+   //$h .= content_breadcrumbs($c);
+   
+
+   $h .= drupal_set_title('');
+   
+   $h .= sub_content_breadcrumbs($c, 'translation');
+   
+   $h .= usmw_title($c->field_content_title, '');
+         
+   //$h .= $c->field_content_translation[LANGUAGE_NONE][0]['value'];
+   
+   if(isset($c->field_content_translation[LANGUAGE_NONE][0]['value']) && $c->field_content_translation[LANGUAGE_NONE][0]['value'] != "" )
+   {
+        $translation = site_root(). $c->field_content_translation[LANGUAGE_NONE][0]['value'];
+        $h .= file_get_contents($translation);
+   }
+   
+   else {
+      
+      return 'translation path not found';
+      
+   }
+   
+   $h .= usmw_footer_seal();    
+   
+   return $h;
+   
+   
+}
+
+
+
+function render_format()
+{
+    
+    $format_contents = get_format_contents();
+    
+    if(!$format_contents)
+    {
+        return 'format not found';
+    }
+    
+    $h = '';
+    
+    $h .= hide_default_breadcrumbs();
+    
+    
+    //$format_id = $_GET['format_id'];
+    $format_id = $format_contents->format_id;
+    
+    
+    if($format_id == 10)
+    {
+        return render_format_bio();
+    }
+    
+    
+    $contents = $format_contents->contents;
+    
+    drupal_set_title('');
+    
+    
+    $h .= usmw_title_render(format_name((int)$format_id));
+    
+    $h .= approximate_dates();
+    $h .= '</br>';
+    
+    $h .= '<div>';
+    
+    $sort = get_sorting_tags($format_contents->sorting);
+    
+    
+    $title_link = '<a href="'. get_page_link('format', (int)$format_id, null, $sort->title) . '">'.$sort->title_label.'</a>';
+    $date_link = '<a href="'. get_page_link('format', (int)$format_id, null, $sort->date) . '">'.$sort->date_label.'</a>';
+    
+    
+    $h .= three_column_header($title_link, $date_link);
+    $h .= '</div>';
+    
+    $h .= '<div>';
+    
+    //$contents = sort_contents($contents, $sorting);
+    
+    $count = 0;
+    $length = count($contents);
+    
+    $link_sort = $format_contents->sorting;
+    
+    if($format_contents->sorting == '')
+    {
+        $link_sort = 'dateasc';
+    }
+    
+    forEach($contents as $content) {
+        
+        
+        $thumb = $content->field_content_thumbnail[LANGUAGE_NONE][0]['value'];
+        
+        if($thumb != '')
+        {
+            $thumb = media_prefix1($thumb);
+        }
+        
+        
+        else {
+            
+           $thumb = '/themes/usmw/images/Topic_NoThumb.png';
+        }
+        
+        
+        $date = content_listing_date($content);
+        
+        
+        $link = '/item?content_id='. $content->field_content_id[LANGUAGE_NONE][0]['value'] .'&format_id='.$format_id . '&ofst=' . $count . '&sort=' . $link_sort . '&ni=' . $length;
+        
+        
+        $col1 = '<a href="'.$link.'"><img class="thumbnail-img" src="'.$thumb .'" width="150"></a>';
+        
+        $col2 = '<a href="'.$link.'">';
+        $col2 .= $content->field_content_title[LANGUAGE_NONE][0]['value'];
+        $col2 .= '</a>';
+        
+        $col3 = $date;
+        
+        $h .= three_column($col1, $col2, $col3);
+        
+        
+        //$h .= '</div>';
+        
+        $count++;
+    }
+    
+    $h .= '</div>';
+    
+    
+    return $h;
+    
+}
+
+
+
+function render_format_bio()
+{
+    
+    $format_bios = get_format_bios();
+    $bios = $format_bios->bios;
+    $nation = $format_bios->nation;
+    $nationality = $format_bios->nationality;
+    
+    
+    drupal_set_title('');
+    $h = '';
+    
+    $h .= hide_default_breadcrumbs();
+    
+    $h .= '<h1>People- ' . $nationality .'</h1>';
+    
+    $sort = get_sorting_tags($format_bios->sorting);
+    
+    $name_link = '<a href="'. get_page_link('format_bio', $nation, null, $sort->name) . '">'.$sort->name_label.'</a>';
+    
+    $h .= two_column_header($name_link);
+    
+    $count = 0;
+    $length = count($bios);
+    
+    forEach($bios as $bio)
+    {
+        
+        //$h .= json_encode($bio);
+        
+        
+        
+        $thumb = $bio->field_bio_thumbnail[LANGUAGE_NONE][0]['value'];
+        
+        if($thumb != '')
+        {
+            $thumb = media_prefix1($thumb);
+        }
+        
+        
+        else {
+            
+           $thumb = '/themes/usmw/images/Topic_NoThumb.png';
+        }
+        
+        
+        $name = bio_name($bio);
+        
+        $link = '/item?bio_id='. $bio->field_bio_id[LANGUAGE_NONE][0]['value'] .'&nation='.$nation . '&ofst=' . $count . '&sort=' . $format_bios->sorting . '&ni=' . $length;
+        
+        
+        $col1 = '<a href="'.$link.'"><img class="thumbnail-img" src="'.$thumb .'" width="150"></a>';
+        
+        $col2 = '<a href="'.$link.'">';
+        $col2 .= $name;
+        $col2 .= '</a>';
+        
+        
+        $h .= two_column($col1, $col2);
+        
+        
+        $count++;
+    }
+    
+    return $h;
+    
+}
+
+
+function render_topic_format()
+{
+    $topic_format_contents = get_topic_format_contents();
+    
+    if(!$topic_format_contents)
+    {
+        return 'error, content not found';
+    }
+    
+    $sorting = get_sorting();
+    
+    
+    $format_id = $topic_format_contents->format_id;
+    $topic_id = $topic_format_contents->topic_id;
+    
+    
+    $topic_nid = db_access_get_nid_by_topic_id($topic_id);
+    $t = node_load($topic_nid);
+    
+    //$content_nids = db_access_get_content_by_format_id($format_id);
+    //$contents = node_load_multiple($content_nids);
+    
+    
+    drupal_set_title('');
+    
+    
+    $h = '';
+    
+    $h .= hide_default_breadcrumbs();
+    
+    $h .= '<div>';
+    
+    $h .= topic_breadcrumbs($t, $format_id , null, null);
+    
+    
+    /*
+    $h .= '<div class="topic_thumbnail_wrapper">';
+    
+    if(isset($t->field_topic_image_url[LANGUAGE_NONE][0]['value']) && $t->field_topic_image_url[LANGUAGE_NONE][0]['value'] != "")
+    {
+        $h .= '<a class="topic_thumbnail" href="'.media_prefix1($t->field_topic_image_url[LANGUAGE_NONE][0]['value']).'"><img src="'.media_prefix1($t->field_topic_image_url[LANGUAGE_NONE][0]['value']).'" align="left" alt="" height="170"></a>';
+    }
+    
+    
+    
+    $h .= '</div>';
+    */
+    
+    
+    //$h .= '<div class="topic_thumbnail_wrapper">';
+    
+    $h .= '<p class="left_paragraph">';
+    
+    $h .= '<a class="topic_thumbnail" href="'.media_prefix1($t->field_topic_image_url[LANGUAGE_NONE][0]['value']).'"><img src="'.media_prefix1($t->field_topic_image_url[LANGUAGE_NONE][0]['value']).'" align="left" alt="" width="250"></a>';
+    
+    $h .= '</p>';
+    
+    //$h .= '</div>';
+    
+    
+    
+    $h .= '<h1>'. $t->field_topic_name[LANGUAGE_NONE][0]['value'] . ': '. format_name((int)$format_id) . '</h1>';
+    
+    $h .= content_links_by_topic_id($t->field_topic_id[LANGUAGE_NONE][0]['value']);
+    
+    
+    $h .= '<br>';
+    
+    $h .= '</div>';
+    
+    
+    $h .= '<div>';
+    $h .= approximate_dates();
+    $h .= '</div>';
+   
+   
+    $sort = get_sorting_tags($sorting);
+    
+    if($format_id == 10)
+    {
+        $h .= render_topic_format_bios();
+        return $h;
+    }
+    
+    $title_link = '<a href="'. get_page_link('topic_format', $topic_id, $format_id, $sort->title) . '">'.$sort->title_label.'</a>';
+    $date_link = '<a href="'. get_page_link('topic_format', $topic_id, $format_id, $sort->date) . '">'.$sort->date_label.'</a>';
+    $h .= three_column_header($title_link, $date_link);
+    
+    
+    //$contents = sort_contents($contents, $sorting);
+    
+    $count = 0;
+    
+    $contents = $topic_format_contents->filtered_contents;
+    $length = count($contents);
+    
+    forEach($contents as $content) {
+        
+        //und is not present, is empty array, fixes 'Undefined index: und' warning
+        if(!isset($content->field_content_topics_list) || $content->field_content_topics_list == array())
+        { continue; } 
+        
+        
+        $list = $content->field_content_topics_list[LANGUAGE_NONE][0]['value'];
+        
+        
+        
+        if(!db_access_is_id_in_list($list, $topic_id))
+        {
+            continue;
+        }
+        
+        $thumb = $content->field_content_thumbnail[LANGUAGE_NONE][0]['value'];
+        
+        if($thumb != '')
+        {
+             $thumb = media_prefix1($thumb);
+        }
+        
+        
+        else {
+            
+           $thumb = '/themes/usmw/images/Topic_NoThumb.png';
+        }
+        
+        $date = content_listing_date($content);
+        
+        $title = $content->field_content_title[LANGUAGE_NONE][0]['value'];
+        
+        if($content->field_content_translated_title[LANGUAGE_NONE][0]['value'] != '')
+        {
+            $title .= '<br>['.$content->field_content_translated_title[LANGUAGE_NONE][0]['value'] .']';
+        }
+        
+        
+        $link = '/item?content_id='. $content->field_content_id[LANGUAGE_NONE][0]['value'] . '&topic_id='. $topic_id . '&format_id='.$format_id . '&ofst=' . $count . '&ni=' . $length;
+        
+        
+        $col1 = '<a href="'.$link.'"><img class="thumbnail-img" src="'.$thumb .'" width="150"></a>';
+        
+        
+        $col2 = '<a href="'.$link.'">';
+        $col2 .= $title;
+        $col2 .= '</a>';
+        
+        $col3 =  $date;
+        
+        $h .= three_column($col1, $col2, $col3);
+        
+        
+        $count++;
+    }
+    
+    $h .= approximate_dates();
+    $h .= '</br>';
+    
+    
+    return $h;
+    
+}
+
+function get_format_contents()
+{
+    if(!isset($_GET['format_id'])) { return null;}
+    
+    $format_id = $_GET['format_id'];
+    
+    $content_nids = db_access_get_content_by_format_id($format_id);
+    
+    $contents = node_load_multiple($content_nids);
+    
+    $sorting = get_sorting();   
+    $contents = sort_contents($contents, $sorting);
+    
+    $format_contents = new stdClass();
+    $format_contents->format_id = $format_id;
+    $format_contents->sorting = $sorting;
+    $format_contents->contents = $contents;
+    
+    return $format_contents;
+    
+}
+
+function get_topic_format_contents()
+{
+    if(!isset($_GET['format_id'])) { return null;}
+    if(!isset($_GET['topic_id'])) { return null;}
+    
+   
+    $format_id = $_GET['format_id'];
+    $topic_id = $_GET['topic_id'];
+    
+    $content_nids = db_access_get_content_by_format_id($format_id);
+    
+    $contents = node_load_multiple($content_nids);
+    
+    $sorting = get_sorting();
+    
+    
+    $topic_nid = db_access_get_nid_by_topic_id($topic_id);
+    $t = node_load($topic_nid);
+    
+    
+    $contents = sort_contents($contents, $sorting);
+    
+    $filtered_contents = [];
+    
+    forEach($contents as $content) {
+        
+        //und is not present, is empty array, fixes 'Undefined index: und' warning
+        if(!isset($content->field_content_topics_list) || $content->field_content_topics_list == array())
+        { continue; } 
+        
+        $list = $content->field_content_topics_list[LANGUAGE_NONE][0]['value'];
+
+        if(!db_access_is_id_in_list($list, $topic_id))
+        {
+            continue;
+        }
+        
+        array_push($filtered_contents, $content);
+        
+        
+    }
+    
+    
+    $topic_format_contents = new stdClass();
+    $topic_format_contents->format_id = $format_id;
+    $topic_format_contents->topic_id = $topic_id;
+    $topic_format_contents->topic = $t;
+    $topic_format_contents->sorting = $sorting;
+    $topic_format_contents->filtered_contents = $filtered_contents;
+    
+    //echo 'filtered ' . count($filtered_contents);
+    
+    
+    return $topic_format_contents;
+    
+}
+
+
+function get_format_bios()
+{
+    if(!isset($_GET['nation']))
+    {
+        return 'nation not found';
+    }
+    
+    $nation = $_GET['nation'];
+    $nationality = $nation;
+    if($nation == 'US')
+    {
+        $nationality = 'U.S.';
+    }
+    
+    $nids = db_access_get_bios_by_nation($nationality);
+    $bios = node_load_multiple($nids);
+    
+    $sorting = get_sorting();
+    
+    if($sorting == '')
+    {
+        $sorting = 'nameasc';
+    }
+    
+    
+    $sort = get_sorting_tags($sorting);
+    
+    
+    $bios = sort_bios($bios, $sorting);
+    
+    $format_bios = new stdClass();
+    $format_bios->bios = $bios;
+    $format_bios->nation = $nation;
+    $format_bios->nationality = $nationality;
+    $format_bios->sorting = $sorting;
+    
+    return $format_bios;
+}
+
+
+function get_topic_format_bios()
+{
+    if(!isset($_GET['format_id'])) { return null;}
+    if(!isset($_GET['topic_id'])) { return null;}
+    
+   
+    $format_id = $_GET['format_id'];
+    $topic_id = $_GET['topic_id'];
+    
+    $bio_objs = db_access_get_related_bios_by_topic_id($topic_id);
+    
+    $nids = [];
+    
+    forEach($bio_objs as $b)
+    {
+        array_push($nids, $b->nid);
+    }
+    
+    $bios = node_load_multiple($nids);
+    
+    $sorting = get_sorting();
+    
+    //$sort = get_sorting_tags($sorting);
+    
+    $bios = sort_bios($bios, $sorting);
+    
+    $topic_format_bios = new stdClass();
+    $topic_format_bios->format_id = $format_id;
+    $topic_format_bios->topic_id = $topic_id;
+    $topic_format_bios->sorting = $sorting;
+    $topic_format_bios->bios = $bios;
+    
+    return $topic_format_bios;
+    
+}
+
+
+function render_topic_format_bios()
+{
+    
+    
+    /*
+    if(!isset($_GET['format_id'])) { return 'format not found';}
+    if(!isset($_GET['topic_id'])) { return 'topic not found';}
+    
+    $format_id = $_GET['format_id'];
+    $topic_id = $_GET['topic_id'];
+    
+
+    $bio_objs = db_access_get_related_bios_by_topic_id($topic_id);
+
+    $nids = [];
+    
+    forEach($bio_objs as $b)
+    {
+        array_push($nids, $b->nid);
+    }
+    
+    $bios = node_load_multiple($nids);
+    
+    $sorting = get_sorting();
+    
+    $sort = get_sorting_tags($sorting);
+    */
+    
+    
+    
+    
+    
+    $topic_format_bios = get_topic_format_bios();
+    $bios = $topic_format_bios->bios;
+    $format_id = $topic_format_bios->format_id;
+    $topic_id = $topic_format_bios->topic_id;
+    
+    $sort = get_sorting_tags($topic_format_bios->sorting);
+    
+    
+    $name_link = '<a href="'. get_page_link('topic_format', $topic_format_bios->topic_id, $topic_format_bios->format_id, $sort->name) . '">'.$sort->name_label.'</a>';
+    
+    
+    
+    $h = '';
+    
+    $h .= two_column_header($name_link);
+    
+    
+    $count = 0;
+    $length = count($topic_format_bios->bios);
+    
+    
+    forEach($bios as $bio)
+    {
+        
+        //$h .= json_encode($bio);
+        
+        
+        $thumb = $bio->field_bio_thumbnail[LANGUAGE_NONE][0]['value'];
+        
+        if($thumb != '')
+        {
+            $thumb = media_prefix1($thumb);
+        }
+        
+        
+        else {
+            
+           $thumb = '/themes/usmw/images/Topic_NoThumb.png';
+        }
+        
+        
+        $name = bio_name($bio);
+        
+        
+        $nation = $bio->field_bio_nationality[LANGUAGE_NONE][0]['value'];
+        
+        if($nation == 'U.S.')
+        {
+            $nation = 'US';
+        }
+        
+        $link = '/item?bio_id='. $bio->field_bio_id[LANGUAGE_NONE][0]['value'] .'&nation='.$nation . '&topic_id='. $topic_id . '&format_id='.$format_id . '&ofst=' . $count . '&ni=' . $length;
+
+        $col1 = '<a href="'.$link.'"><img class="thumbnail-img" src="'.$thumb .'" width="150"></a>';
+        
+        $col2 = '<a href="'.$link.'">';
+        $col2 .= $name;
+        $col2 .= '</a>';
+        
+        
+        $h .= two_column($col1, $col2);
+        
+        
+        $count++;
+    }
+    
+    
+    
+    return $h;
+    
+    
+    
+}
+
+function render_main_search()
+{
+    $h = '';
+    
+    drupal_set_title('');
+    
+    $terms = null;
+    
+    $sorting = get_sorting();
+    
+    if(!$sorting)
+    {
+        $sorting = 'asc';
+    }
+    
+    
+    if(isset($_POST["searchstring"]))
+    {
+        $terms = $_POST["searchstring"];
+    }
+    
+    else if(isset($_GET["searchstring"]))
+    {
+        $terms = $_GET["searchstring"];
+    }
+    
+    else {
+        
+       $h .= 'no search query';
+       return $h; 
+    }
+    
+    /*
+    if(!isset($_POST['searchstring']) || $_POST["searchstring"] == "")
+    {
+        $h .= 'no search query';
+        return $h;
+    }
+    */
+    
+    $h .= '<br><h1>Search Results for: "' . strtoupper($terms) .'"</h1>';
+    
+    $results = db_access_usmw_search($terms);
+    
+
+    $organized = organize_search($results, $sorting, null, null);
+    
+
+    
+    if(isset($organized->contents) && count($organized->contents) > 0)
+    {
+        
+        $h .= '<p>Results In:'; 
+        
+    }
+    
+    else if(isset($organized->topics) && count($organized->topics) > 0)
+    {
+        
+        $h .= '<p>Results In:'; 
+        
+    }
+    
+    else {
+        
+        $h .= 'No results found.';
+    }
+    
+    forEach($organized->contents as $f)
+    {
+        
+        $h .= '<br><a href="#'.(string)$f->format.'">' . format_name($f->format) . '</a>: ' . count($f->content);
+        
+    }
+    
+    if(isset($organized->topics))
+    {
+    
+       $h .= '<br><a href="#T">Topics</a>: ' . count($organized->topics);
+       
+    }
+    
+    $h .= '</p>';
+    
+    $sort = get_sorting_tags($sorting);
+    
+    $h .= render_search_results($organized, site_root(). '/mainsearch?sort='.$sort->search.'&searchstring='.$terms, $sort->search_label);
+    
+    
+    return $h;
+    
+}
+
+
+function organize_search($results, $sorting, $format_filter, $topic_filter)
+{
+    
+    //contents
+    
+    $content_nodes = null;
+    $bio_nodes = null;
+    $topic_nodes = null;
+    
+    
+    //echo '<br>format filter ' . json_encode($format_filter);
+    //echo '<br>topic filter ' . json_encode($topic_filter);
+    
+    
+    
+    
+    if($results->content_nids && count($results->content_nids) > 0)
+    {
+       $content_nodes = node_load_multiple($results->content_nids);
+        
+       if($topic_filter)
+       {
+            $content_nodes = topic_filter_content($content_nodes, $topic_filter);
+       }
+    }
+    
+    if($results->bio_nids && count($results->bio_nids) > 0)
+    {
+       $bio_nodes = node_load_multiple($results->bio_nids);
+    
+       if($topic_filter)
+       {
+            $bio_nodes = topic_filter_bio($bio_nodes, $topic_filter);
+       }
+    }
+    
+    if($results->topic_nids && count($results->topic_nids) > 0)
+    {
+        $topic_nodes = node_load_multiple($results->topic_nids);
+        
+        if($topic_filter)
+        {
+            $topic_nodes = topic_filter_topic($topic_nodes, $topic_filter);
+        }
+    }
+    
+    
+    $h = '';
+    
+    if(!$content_nodes) { $content_nodes = []; }
+    if(!$topic_nodes) { $topic_nodes = []; }
+    if(!$bio_nodes) { $bio_nodes = []; }
+    
+    
+    usort($content_nodes, function($a, $b) {
+                
+            return $a->field_format_id["und"][0]["value"] - $b->field_format_id["und"][0]["value"];
+            
+    });
+    
+    
+    
+    $organized = new stdClass();
+    $organized->contents = [];
+    
+    
+    $found_formats = [];
+    
+    
+    //bios
+    
+    if($bio_nodes)
+    {
+        $o = new stdClass();
+        $o->label = 'bio';
+        $o->format = 10; //people
+        $o->content = sort_bios($bio_nodes, $sorting);
+        
+        
+        array_push($organized->contents, $o);
+    }
+    
+    forEach($content_nodes as $c)
+    {
+        $f = (int)$c->field_format_id["und"][0]["value"];
+        
+        //filter out format 0 (old format?)
+        if($f == 0)
+        {
+            //echo '<br> format 0 found';
+            continue;
+        }
+        
+        if($format_filter)
+        {
+            if(!in_array($f, $found_formats) && in_array($f, $format_filter))
+            {   
+                array_push($found_formats, $f);
+            }
+        }
+        
+        else 
+        {
+            if(!in_array($f, $found_formats))
+            {   
+                array_push($found_formats, $f);
+            }
+            
+        }
+        
+        
+    }
+    
+    //echo '<br> found formats' . json_encode($found_formats);
+    
+    
+    forEach($found_formats as $f)
+    {
+        
+        $o = new stdClass();
+        $o->label = 'content';
+        $o->format = $f;
+        $o->content = [];
+        
+        forEach($content_nodes as $c)
+        {
+            if((int)$c->field_format_id["und"][0]["value"] == $f)
+            {
+                array_push($o->content, $c);
+                
+                /*
+                if($topic_filter)
+                {
+                    
+                    //und is not present, is empty array, fixes 'Undefined index: und' warning
+                    if(!isset($c->field_content_topics_list) || $c->field_content_topics_list == array())
+                    { 
+                        //no list, don't add
+                        echo '<br>not in topic list, omitted ' . $c->field_content_title[LANGUAGE_NONE][0]['value']; 
+                    }
+                    
+                    else 
+                    {
+                        $ids = db_access_list_to_ids($c->field_content_topics_list);
+                        
+                        $intersection = array_intersect($topic_filter, $ids);
+                        
+                        if(count($intersection) > 0)
+                        {
+                            $h .= '<br>intersection ' . json_encode($intersection);
+                            array_push($o->content, $c);
+                        }
+                        
+                    }
+                    
+                }
+                
+                else
+                {
+                    array_push($o->content, $c);
+                }
+                
+                */
+            }
+        }
+        
+        
+        $o->content = sort_contents($o->content, $sorting);
+        
+        
+        array_push($organized->contents, $o);
+        
+    }
+    
+    
+    //sort_topics($topics, $sorting)
+    
+    if($topic_nodes)
+    {
+        $organized->topics = sort_topics($topic_nodes, $sorting);
+    }
+    
+    //echo 'topics' . json_encode($organized->topics);
+    //echo '<br>' . json_encode($results->topic_nids);
+    //$organized->topics = $topic_nodes;
+    
+    
+    
+    return $organized;
+    
+}
+
+
+function topic_filter_content($content_nodes, $topic_filter)
+{
+    //return $content_nodes;
+    $filtered = [];
+    
+    forEach($content_nodes as $c)
+    {
+        //und is not present, is empty array, fixes 'Undefined index: und' warning
+        if(!isset($c->field_content_topics_list) || $c->field_content_topics_list == array())
+        { 
+            //no list, don't add
+            //echo '<br>not in topic list, omitted ' .  $c->field_content_id[LANGUAGE_NONE][0]['value'] . ' ' . $c->field_content_title[LANGUAGE_NONE][0]['value']; 
+        }
+        
+        else 
+        {
+            $ids = db_access_list_to_ids($c->field_content_topics_list[LANGUAGE_NONE][0]['value']);
+            
+            $intersection = array_intersect($topic_filter, $ids);
+            
+            if(count($intersection) > 0)
+            {
+                //$h .= '<br>intersection ' . json_encode($intersection);
+                array_push($filtered, $c);
+            }
+            
+        }
+        
+        
+    }
+    
+    
+    return $filtered;
+    
+}
+
+function topic_filter_bio($bio_nodes, $topic_filter)
+{
+    //echo '<br>' . count($topic_filter);
+    //echo '<br>' . json_encode($topic_filter);
+    
+    $filtered = [];
+    
+    forEach($bio_nodes as $b)
+    {
+        //field_bio_topic_list[LANGUAGE_NONE][0]['value']
+        //und is not present, is empty array, fixes 'Undefined index: und' warning
+        if(!isset($b->field_bio_topic_list) || $b->field_bio_topic_list == array())
+        { 
+            //no list, don't add
+            //echo '<br>no topic list, omitted ' .  bio_name($b); 
+        }
+        
+        else 
+        {
+            $ids = db_access_list_to_ids($b->field_bio_topic_list[LANGUAGE_NONE][0]['value']);
+            
+            $intersection = array_intersect($topic_filter, $ids);
+            
+            if(count($intersection) > 0)
+            {
+                //$h .= '<br>intersection ' . json_encode($intersection);
+                array_push($filtered, $b);
+            }
+            else {
+                //echo '<br>not in topic list, omitted ' .  bio_name($b); 
+            }
+            
+        }
+        
+        
+    }
+    
+    
+    return $filtered;
+    
+}
+
+function topic_filter_topic($topic_nodes, $topic_filter)
+{
+    $filtered = [];
+    
+    //$topic->field_topic_id[LANGUAGE_NONE][0]['value'];
+    
+    forEach($topic_nodes as $t)
+    {
+        //und is not present, is empty array, fixes 'Undefined index: und' warning
+        if(!isset($t->field_topic_id))
+        { 
+            //no list, don't add
+            //echo '<br>no topic list, omitted ' .  $t->field_topic_name[LANGUAGE_NONE][0]['value'];
+        }
+        
+        if(in_array((int)$t->field_topic_id[LANGUAGE_NONE][0]['value'], $topic_filter))
+        {
+            //echo '<br>in topic list ' .  $t->field_topic_name[LANGUAGE_NONE][0]['value'];
+            array_push($filtered, $t);
+        }
+        
+        else{
+            //echo '<br>not in topic list, omitted ' .  $t->field_topic_name[LANGUAGE_NONE][0]['value'];
+        }
+        
+    }
+    
+    return $filtered;
+}
+
+function render_advanced_search()
+{
+    
+    
+    $h = '';
+    
+    drupal_set_title('Narrow your Search');
+    
+    //$h .= 'advanced search';
+    $h .= '<br>';
+    
+    $h .= '<form id="form1" method="post" action="advanced_search_results">';
+    $h .= '<input type="text" name="searchstring" id="searchstring">';
+    $h .= '<input type="submit" name="Search" id="search result" value="Search">';
+    
+    $h .= '<h3>Limit to:</h3><br>';
+    
+    $h .= '<div id="topicsform">';
+    $h .= '<p>Major Topics:</p>';
+    
+    $t = get_major_topics();
+    $count = 0;
+    
+    forEach($t as $major_topic)
+    {
+       
+        $h .= '<label>';
+        $h .= '<input type="checkbox" name="Topic_'.(string)$count.'" value="'.$major_topic->label.'" id="Topic_'.(string)$count.'">';
+        $h .= $major_topic->label;
+        $h .= '</label>';
+        
+        //$h .= '<br>';
+        
+        $count++;
+    }
+    
+    $h .= '</div>';
+    
+  
+    $h .= '<div id="types">';
+    $h .= '<p>Formats:</p>';
+    
+    $f = get_formats();
+    $count = 0;
+    
+    forEach($f as $format)
+    {
+        
+        if($count > 0)
+        {
+        
+            $h .= '<label>';
+            $h .= '<input type="checkbox" name="Format_'.(string)$count.'" value="'.$format.'" id="Format_'.(string)$count.'">';
+            $h .= $format;
+            $h .= '</label>';
+        }
+        
+        
+        $count++;
+    }
+    
+    $h .= '</div>';
+    
+    
+    
+     
+    $h .= '</form>';
+    
+    $h .= '<p>(results will include material in any of the topics or types you&#39;ve checked)</p>';
+    
+    
+    return $h;
+    
+}
+
+
+function render_advanced_search_results()
+{
+    $h = '';
+    
+    $debug = true;
+    
+    $selected_topics  = [];
+    $selected_formats = [];
+    $terms = '';
+    
+    
+    $major_topics = get_major_topics();
+    $formats = get_formats();
+    
+    drupal_set_title('');
+    
+    $back_to_top = '<br><div style="align:right;float:right;margin-right:20px;"><a href="#top">Back to Top</a></div>';
+    
+    $search_nids = [];
+    
+    if(!isset($_POST["searchstring"]))
+    {
+        return 'no search term found';   
+    }
+    
+    if(isset($_POST["searchstring"]))
+    {
+        $terms = $_POST["searchstring"];
+        
+        $search_message = 'Search results for '. strtoupper($terms) . ' ';
+        
+        $count = 0;
+        
+        //collect selected topics / formats
+        
+        forEach($major_topics as $t)
+        {
+            $id = 'Topic_' . (string)$count;
+            
+            if(isset($_POST[$id]))
+            {
+                array_push($selected_topics, $count);
+            }
+            
+            $count++;
+        }
+        
+        
+        
+        $count = 0;
+        
+        forEach($formats as $f)
+        {
+            
+            $id = 'Format_' . (string)$count;
+            
+            if(isset($_POST[$id]))
+            {
+                array_push($selected_formats, $count);
+            }
+            
+            $count++;
+        }
+        
+        
+    }
+    
+    
+    if(count($selected_topics) == 0 && count($selected_formats) == 0)
+    {
+        $search_message .= ':';
+    }
+    
+    if(($selected_formats) > 0)
+    {
+        //$h .= '<br>---<br>Formats Restricted To:';
+        
+        
+        $count = 0;
+        
+        forEach($selected_formats as $f)
+        {
+            //$h .= '<br>' . $formats[$f];
+            
+            if($count > 0)
+            {
+                $search_message .= ", ";
+            }
+            
+            else {
+                $search_message .= " in ";
+            }
+            
+            $search_message .= '<a href="#'.$f.'">' . $formats[$f] . '</a>';
+            
+            $count++;
+        }
+        
+    }
+    
+    if(count($selected_topics) > 0)
+    {
+        //$h .= '<br>Major Topics Restricted To:';
+        
+        if(count($selected_formats) == 0)
+        {
+            $search_message .= ' in '; 
+        }
+        else
+        {
+            $search_message .= ' and '; 
+        }
+        
+        $count = 0;
+        
+        forEach($selected_topics as $t)
+        {
+            //$h .= '<br>' . $major_topics[$t]->label;
+            
+            
+            if($count > 0)
+            {
+                $search_message .= ", ";
+            }
+            $search_message .= $major_topics[$t]->label;
+            
+            
+            
+            $count ++;   
+        }
+        
+    }
+    
+    //$h .= '<br>---<br>';
+    
+    //--search results--//
+    
+    $topic_ids = '';
+    $count = 0;
+    
+    forEach($selected_topics as $t)
+    {
+        if($count > 0)
+        {
+            $topic_ids .= ",";
+        }
+        
+        $topic_ids .= $major_topics[$t]->topics;
+        
+        $count++;
+    }
+    
+    
+    //echo '<br> topic ids ' . $topic_ids;
+    
+    //$h  .= '<br>search results';
+    
+    $h .= '<h3 id="top">'. $search_message .'</h3>';
+    
+    
+    
+    $topic_ids = db_access_list_to_ids($topic_ids);
+    $selected_topics = $topic_ids;
+    
+    //$h .= '<br>topic ids ' . json_encode($topic_ids);
+    
+    
+    
+    $results = db_access_usmw_search($terms);
+    
+    //echo '<br>' . json_encode($results);
+    
+    $organized = organize_search($results, null, $selected_formats, $selected_topics);
+    
+    
+    if(isset($organized->contents) && count($organized->contents) > 0)
+    {
+        
+        $h .= '<p>Results In:'; 
+        
+    }
+    
+    else if(isset($organized->topics) && count($organized->topics) > 0)
+    {
+        
+        $h .= '<p>Results In:'; 
+        
+    }
+    
+    else {
+        
+        $h .= 'No results found.';
+    }
+    
+    forEach($organized->contents as $f)
+    {
+        
+        $h .= '<br><a href="#'.(string)$f->format.'">' . format_name($f->format) . '</a>: ' . count($f->content);
+        
+    }
+    
+    if(isset($organized->topics))
+    {
+    
+       $h .= '<br><a href="#T">Topics</a>: ' . count($organized->topics);
+       
+    }
+    
+    $h .= render_search_results($organized, null, 'Title');
+    
+    
+    return $h;
+}
+
+
+function render_search_results($organized, $header_link, $header_label)
+{
+    $h = '';
+    
+    
+    $rendered = 0;
+    
+    $header_html = 'Title';
+    
+    if($header_link && $header_label)
+    {
+        if($header_link == null)
+        {
+            $header_html = $header_label;
+        }
+        else 
+        {
+            $header_html = '<a href="'.$header_link.'">'.$header_label.'</a>';
+        }
+    }
+    
+    forEach($organized->contents as $content)
+    {
+        
+        $h .= '<div class="page_break""></div>';
+        
+        $link = (string)$content->format;
+        $label = format_name($content->format);
+        
+        if($content->label == "bio")
+        {
+            $link = "bio";
+            $label .= ' (Biography)';
+        }
+        
+        if($rendered == 0)
+        {
+            $h .= '<h3 id="'.$link.'">' . $label .'</h3>';
+        }
+        else
+        {
+            $h .= title_with_back($label, $link);
+        }
+        
+        
+        if($content->label == "bio")
+        {
+            $h .= two_column_header('Name');
+        }
+        else 
+        {
+            $h .= two_column_header($header_html);
+        }
+        
+        forEach($content->content as $b)
+        {
+            if($b->type == 'usmw_bio')
+            {
+                //echo 'rendering ' . $b->type;
+                $h .= render_bio_listing($b);
+            }    
+        }
+        
+        
+        forEach($content->content as $c)
+        {
+            
+            if($content->format != 10)
+            {
+                $h .= render_content_listing($c, 2);
+            }
+            
+            else if($content->format == 10 && $c->type == 'usmw_content')
+            {
+                $h .= render_content_listing($c, 2);     
+            }
+            
+            
+        
+        }
+        
+        
+        $rendered++;
+    }
+    
+    
+    //echo '<br>' . json_encode($organized->topics);
+    
+    if(isset($organized->topics))
+    {
+        $h .= '<div class="page_break""></div>';
+        //$h .= '<div style="display:inline-block;"><h3 id="T">Topic</h3></div>';
+        //$h .= '<div style="display:inline-block;">'. back_to_top() . '</div>';
+        
+        $h .= title_with_back('Topic', 'T');
+        
+        
+        $h .= two_column_header($header_html);
+        
+        forEach($organized->topics as $t)    
+        {
+            
+            $h .= render_topic_listing($t, 2);
+            
+        }
+        
+        
+    }
+    
+    
+
+    return $h;
+    
+}
+
+function render_content_listing($content, $number_of_columns)
+{
+    $h = '';
+    
+    $format_id = $content->field_format_id[LANGUAGE_NONE][0]['value'];
+    $thumb = $content->field_content_thumbnail[LANGUAGE_NONE][0]['value'];
+    
+            
+    if($thumb != '')
+    {
+        $thumb = media_prefix1($thumb);
+    }
+    
+    
+    else {
+        
+       $thumb = '/themes/usmw/images/Topic_NoThumb.png';
+    }
+    
+    
+    
+    $col1 = '<a href="/item?content_id='. $content->field_content_id[LANGUAGE_NONE][0]['value'] .'&format_id='.$format_id.'"><img class="thumbnail-img" src="'.$thumb .'" width="150"></a>';
+    
+    $col2 = '';
+    
+    $col2 .= '<a href="/item?content_id='. $content->field_content_id[LANGUAGE_NONE][0]['value'] .'&format_id='.$format_id.'">';
+    $col2 .= $content->field_content_title[LANGUAGE_NONE][0]['value'];
+    $col2 .= '</a>';
+    
+    
+    //if($number_of_columns )
+    
+    $h .= two_column($col1, $col2);
+    
+    
+    return $h;
+    
+}
+
+
+function render_bio_listing($bio)
+{
+    $h = '';
+    
+
+    $thumb = $bio->field_bio_thumbnail[LANGUAGE_NONE][0]['value'];
+    
+    if($thumb != '')
+    {
+        $thumb = media_prefix1($thumb);
+    }
+    
+    else {
+        
+       $thumb = '/themes/usmw/images/Topic_NoThumb.png';
+    }
+    
+    
+    $name = bio_name($bio);
+    
+    
+    $nation = $bio->field_bio_nationality[LANGUAGE_NONE][0]['value'];
+    
+    if($nation == 'U.S.')
+    {
+        $nation = 'US';
+    }
+    
+    
+    $col1 = '<a href="/item?bio_id='. $bio->field_bio_id[LANGUAGE_NONE][0]['value'] .'&nation='.$nation.'"><img class="thumbnail-img" src="'.$thumb .'" width="150"></a>';
+    
+    $col2 = '<a href="/item?bio_id='. $bio->field_bio_id[LANGUAGE_NONE][0]['value'] .'&nation='.$nation.'">';
+    $col2 .= $name;
+    $col2 .= '</a>';
+      
+    
+    $h .= two_column($col1, $col2);
+    
+    
+    return $h;
+    
+}
+
+
+function render_topic_listing($topic, $number_of_columns)
+{
+    $h = '';
+    $thumb = $topic->field_topic_thumbnail[LANGUAGE_NONE][0]['value'];
+    
+    if($thumb != '')
+    {
+        $thumb = media_prefix1($thumb);
+    }
+    
+    else {
+        
+       $thumb = '/themes/usmw/images/Topic_NoThumb.png';
+    }
+    
+    $link = site_root() . '/topic?topic_id='.$topic->field_topic_id[LANGUAGE_NONE][0]['value'];
+    $name = $topic->field_topic_name[LANGUAGE_NONE][0]['value'];
+    
+    $col1 = '<a href="'.$link.'"><img class="thumbnail-img" src="'.$thumb .'" width="150"></a>';
+    
+    $col2 = '<a href="'.$link.'">';
+    $col2 .= $name;
+    $col2 .= '</a>';
+    
+        
+    $h .= two_column($col1, $col2);
+    
+    return $h;
+
+}
+
+
+function render_home_page()
+{
+    $h = '';
+    
+    
+    $h .= file_get_contents('http://drupaltest.space/usmw_includes/timeline.html');
+    
+    
+    $h .= '<div class="timeline_text" style="text-align:right;"><a href="'.site_root().'/timeline">Text version of timeline</a></div>';
+    
+    
+    $h .= '<style> #page-content {background-color: transparent;}</style>';
+    
+    
+    //mobile alternate intro (taken from timeline text)
+    $h .= '<div class="mobile_show">';
+    
+    $h .= '<div>';
+    
+    $h .= '<h1>The U.S. - Mexico War</h1>';
+    $h .= '<h1>(1846 - 1848)</h1>';
+    
+    $h .= '<p>Is the largest and most significant armed struggle between two nations in the western hemisphere. In Mexico, the war left a legacy of bitterness that can be seen to this day. In the United States, tensions between North and South soon eclipsed the clash with Mexico in the national imagination. Abraham Lincoln alluded to these tensions when he described the United States in 1858 as "a house divided." A decade earlier, however, North America was a divided continent, the site of conflict between two republics that had forged two very different destinies since winning their independence from European power.</p>';
+    
+    $h .= '<p><a href="http://drupaltest.space/timeline">War Timeline</a></p>';
+    
+    $h .= '</div>';
+    
+    
+    $h .= '</div>';
+    
+    
+    
+    $h .= '<br>';
+    
+    $h .= '<div id="home_page_panels" class="bottom-third">';
+    $h .= '<h3>Major Topics</h3>';
+    
+    
+    $h .= '<div id="topics" ></div>';
+    
+    $h .= '<div id="imagecontainer"><div id="image"><div class="i"><a href="#"><img src="themes/usmw/includes/usmw-E404-K46-1851_i12.png"></a></div></div></div>';
+    
+    $h .= '</div>';
+    
+    
+    $h .= '<br>';
+    
+    return $h;
+    
+    
+}
+
+//record links
+function link_prep($link_url)
+{
+ 
+   $link_url = media_prefix1($link_url);
+   
+   return $link_url;
+}
+
+function media_prefix1($media_url)
+{
+    /*
+    $media_url = str_replace('usmexicowar/', '', $media_url);
+    
+    $media_url = str_replace('history/', 'collections/history/', $media_url);
+    
+    $media_url = str_replace('opt/www//library-test.uta.edu/usmw-refresh-new/', '', $media_url);
+    
+    $media_url = str_replace('opt/www/library.uta.edu/', '', $media_url);
+    
+    
+    $media_url = str_replace('.JPG', '.jpg', $media_url);
+    */
+    
+    return site_root() . $media_url;
+    
+}
+
+
+
+function usmw_field_wrap($field, $label)
+{
+    $f = $field[LANGUAGE_NONE][0]['value'];
+    
+    if(field_empty($f)) { return ''; }
+    
+    return usmw_field_render($f, $label);
+    
+}
+
+function usmw_field_link($field, $label)
+{
+    
+    if(!isset($field[LANGUAGE_NONE][0]['value']) || field_empty($field[LANGUAGE_NONE][0]['value'])) { return ''; }
+    
+    $f = '';
+    
+    $link = link_prep($field[LANGUAGE_NONE][0]['value']);
+    
+    $f .= '<a href="'.$link.'">'. $link .'</a>';
+    return usmw_field_render($f, $label);
+    
+}
+
+function usmw_field_render($field, $label)
+{
+    
+    $h = '';
+    $h .= '<p>';
+    
+    $h .= '<strong>' . $label . ' - </strong> ' . $field;
+    
+    $h .= '</p>';
+    
+    return $h;
+    
+}
+
+
+function usmw_title($field, $label)
+{
+    
+    if(!$field) { return ''; }
+    
+    $h = '';
+    $h .= '<p>';
+    $h .= '<h1>' .$field[LANGUAGE_NONE][0]['value'] . '</h1>';
+    $h .= '</p>';
+    
+    return $h;
+    
+}
+
+function usmw_title_render($t)
+{
+   
+    $h = '';
+    $h .= '<p>';
+    
+    $h .= '<h1>' .$t . '</h1>';
+    
+    $h .= '</p>';
+    
+    return $h;
+    
+}
+
+
+
+function usmw_topic_dates($start_date, $end_date) 
+{
+    //return date('F j, Y', strtotime($d));
+    $h = '';
+    
+    if($start_date === '0000-00-00' && $end_date === '0000-00-00')
+    {
+        return '';
+    }
+    
+    
+    $h .= date('F, Y', strtotime($start_date));
+    //$h .= ' (' . $start_date . ')';
+    $h .= ' - ';
+    $h .= date('F, Y', strtotime($end_date));
+    //$h .= ' (' . $end_date . ')';
+    
+    return $h;
+    
+}
+
+
+function usmw_bio_date($birth_date, $death_date)
+{
+    $h = '';
+    
+    //$h .= date('F j, Y', strtotime($birth_date));
+    $h .= reformat_date($birth_date);
+    //$h .= ' (' . $birth_date . ')';
+    
+    if($death_date !== '0000-00-00' && $death_date !== '0000')
+    {
+        $h .= ' - ';
+        $h .= reformat_date($death_date);
+    
+    }
+    
+    
+    
+    return $h;
+}
+
+
+
+function reformat_date($date_string)
+{
+    $d = explode('-', $date_string);
+    
+    if($d[1] == '00' && $d[2] == '00')
+    {
+        return $d[0];
+    }
+    /*
+    else if($d[1] != '0' && $d[2] == '0')
+    {
+        return $d[0];
+    }
+    */
+    
+    return date('F j, Y', strtotime($date_string));
+}
+
+//from item2.php content_pub_date logic
+function reformat_date_published($date_string)
+{
+    
+    if(!$date_string || $date_string == '0000-00-00' || $date_string == '')
+    {
+        //echo 'test';
+        return '';
+    }
+    
+    $d = explode('-', $date_string);
+    
+    //return json_encode($d);
+    
+    $date = '';
+    
+    
+    //return json_encode($d);
+    
+    if($d[1] == '00' && $d[2] == '00')
+    {
+        //$date = $d[0];
+        return $d[0];
+    }
+    
+    else if($d[1] != '0' && $d[2] == '0')
+    {
+        $date = $d[0] . ' - ' . $d[1];
+        $date = date('F, Y', strtotime($date));
+        
+    }
+    
+    $date = date('F j, Y', strtotime($date_string));
+    
+    
+    return $date;
+    
+}
+
+function content_listing_date($content)
+{
+    
+    
+    $date = reformat_date_coverage($content->field_content_time_coverage_star, $content->field_content_time_coverage_end, $content->field_content_time_approx);
+    
+    $approximate = false;
+    
+    if(strpos($date, '*') !== false) //aproximate
+    {
+        $approximate = true;
+    }
+    
+        
+    if(explode('-', $date))
+    {
+       $date = explode('-', $date)[0];
+    }
+    
+    if($approximate)
+    {
+        $date .= '*';
+    }
+    
+    return $date;
+        
+}
+
+
+
+//'content_time_coverage_start'
+function reformat_date_coverage($coverage_start, $coverage_end, $content_time_approx)
+{
+    $date_string = '';
+    $c_start = '';
+    $c_end = '';
+    $approximate = null;
+    
+    $start_val = usmw_validator($coverage_start);
+    $end_val = usmw_validator($coverage_end);
+    $approx_val = usmw_validator($content_time_approx);
+    
+    /*
+    echo '<Br>start_val' . json_encode($start_val);
+    echo '<br>end_val' . json_encode($end_val);
+    echo '<br>approx_val' . json_encode($approx_val);
+    */
+    
+
+    if(!$coverage_start || !isset($coverage_start))
+    {
+        /*
+        echo '<br>' . json_encode($content->field_content_time_coverage_star);
+        
+        
+        if(!isset($content->field_content_time_coverage_star) || $content->field_content_time_coverage_star[LANGUAGE_NONE][0]['value'] == "")
+        {
+            return 'N/A';
+        }
+        */
+        return 'N/A';
+    }
+    
+    
+    /*
+    
+    if($coverage_start[LANGUAGE_NONE][0]['value'] && $coverage_start[LANGUAGE_NONE][0]['value'] != null && $coverage_start[LANGUAGE_NONE][0]['value'] != '')
+    {
+        //return '';
+        if(strpos($coverage_start[LANGUAGE_NONE][0]['value'], '-00-00') === false)
+        {            
+            //$c_start = $date_string;
+            $c_start = date('F j, Y', strtotime($coverage_start[LANGUAGE_NONE][0]['value']));
+        }
+        
+        else if($coverage_start[LANGUAGE_NONE][0]['value'] == '0000-00-00')
+        {
+            $c_start = 'N/A';
+        }
+    
+        else 
+        {
+            $c_start = substr($coverage_start[LANGUAGE_NONE][0]['value'], 0, 4);
+        }
+        
+    }
+    
+    
+    if($coverage_end[LANGUAGE_NONE][0]['value'] != null && $coverage_start[LANGUAGE_NONE][0]['value'] != '')
+    {
+        //$c_end = date('F j, Y', strtotime($coverage_end));
+        if(strpos($coverage_end[LANGUAGE_NONE][0]['value'], '-00-00') === false)
+        {            
+            //$c_start = $date_string;
+            $c_end = date('F j, Y', strtotime($coverage_end[LANGUAGE_NONE][0]['value']));
+        }
+        
+        else 
+        {
+            $c_end = substr($coverage_end[LANGUAGE_NONE][0]['value'], 0, 4);
+        }
+        
+    }
+    
+    */
+    
+    if($start_val && $start_val != null && $start_val != '')
+    {
+        //return '';
+        if(strpos($start_val, '-00-00') === false)
+        {            
+            //$c_start = $date_string;
+            $c_start = date('F j, Y', strtotime($coverage_start[LANGUAGE_NONE][0]['value']));
+        }
+        
+        else if($start_val == '0000-00-00')
+        {
+            $c_start = 'N/A';
+        }
+    
+        else 
+        {
+            $c_start = substr($start_val, 0, 4);
+        }
+        
+    }
+    
+    
+    if($end_val != null && $end_val != '')
+    {
+        //$c_end = date('F j, Y', strtotime($coverage_end));
+        if(strpos($end_val, '-00-00') === false)
+        {            
+            //$c_start = $date_string;
+            $c_end = date('F j, Y', strtotime($end_val));
+        }
+        
+        else 
+        {
+            $c_end = substr($end_val, 0, 4);
+        }
+        
+    }
+    
+    
+    
+    $date_string .= $c_start;
+    
+    if($c_end != '')
+    {
+        $date_string .= ' - ' . $c_end;
+    }
+    
+    
+    if( $date_string === '')
+    {
+        $date_string = 'N/A';
+    }
+    
+    
+    
+    /*
+    if($content_time_approx[LANGUAGE_NONE][0]['value'] && $content_time_approx[LANGUAGE_NONE][0]['value'] != null)
+    {
+        if($content_time_approx[LANGUAGE_NONE][0]['value'] == 'y')
+        {
+            $date_string .= '*';
+            
+        }
+    }
+    
+    */
+    
+    if($approx_val && $approx_val != null)
+    {
+        if($approx_val == 'y')
+        {
+            $date_string .= '*';
+            
+        }
+    }
+    
+    
+    
+    
+    return $date_string;
+    
+}
+
+
+
+function standard_content_page_thumbnail($c, $links_html)
+{
+    
+    $h = '';
+    
+    $h .= '<div>';
+    
+    //$h .= '<p style="margin-left:14px;float:left;clear: both;display: block;">';
+    $h .= '<p class="left_paragraph">';
+    
+    $h .= '<a href="'.media_prefix1($c->field_content_image_url[LANGUAGE_NONE][0]['value']).'"><img src="'.media_prefix1($c->field_content_image_url[LANGUAGE_NONE][0]['value']).'" align="left" alt="" width="250" "=""></a>';
+    
+    
+    $h .= $links_html;
+    
+    
+    $h .= '</p>';
+    
+    $h .= '</div>';
+    
+    return $h;
+    
+}
+
+function standard_thumbnail($img, $link, $links_html)
+{  
+    
+
+    $h = '';
+    
+    $h .= '<div>';
+    //$h .= '<p style="margin-left:14px;float:left;clear: both;display: block;">';
+    $h .= '<p class="left_paragraph">';
+    
+    if($link)
+    {
+        $h .= '<a href="'.media_prefix1($link).'"><img src="'.$img.'" align="left" alt="" width="250" "=""></a>';
+    }
+    
+    else{
+        $h .= '<img src="'.$img.'" align="left" alt="" width="250" "="">';
+    }
+    
+    $h .= $links_html;
+    $h .= '</p>';
+    
+    $h .= '</div>';
+    
+    return $h;
+    
+}
+
+function topic_links($list)
+{
+    
+    $topics = load_topics_from_list($list);
+    
+    $h = '';
+    
+    //$h = 'placeholder :'. $list;
+    
+    //echo json_encode($topics);
+    
+    if($topics)
+    {
+        forEach($topics as $topic)
+        {
+            //echo '<br><br><br> '. json_encode($topic);
+            
+            $id = $topic->field_topic_id[LANGUAGE_NONE][0]['value'];
+            
+            $h .= ' <a href="/topic?topic_id='.$id.'">'. $topic->field_topic_name[LANGUAGE_NONE][0]['value'] .'</a>';  
+            
+        }
+        
+    }
+    
+    
+    return $h;
+    
+}
+
+
+function content_links_by_topic_id($topic_id)
+{
+    
+    $contents = db_access_get_related_content_by_topic_id($topic_id);
+    $bios = db_access_get_related_bios_by_topic_id($topic_id);
+    
+    
+    $formats = [];
+    
+    $h = [];
+    
+    forEach($contents as $c)
+    {
+        $f = (int)$c->format_id;
+        if(!in_array($f, $formats) && $f != 10)
+        {
+            array_push($formats, $f);
+            
+        }
+        
+        
+    }
+    
+    
+    
+    
+    sort($formats);
+    
+    if($bios && count($bios) > 0)
+    {
+        array_push($formats, 10);
+    }
+    
+    
+    
+    array_push($h, '<div class="module-wrap">');
+    
+    array_push($h, '<p>');
+    
+    
+    forEach($formats as $format)
+    {
+        array_push($h, '<div class="module-link">');
+        array_push($h, '<a href="/topic_format?topic_id='.$topic_id.'&format_id='.(string)$format.'">'. format_name($format) .'</a>');
+        array_push($h, '</div>');
+    }
+    
+    
+    array_push($h, '</p>');
+    
+    array_push($h, '</div>');
+    //array_push($h, '<br>' . json_encode($bios));
+    
+    
+    return join($h);
+}
+
+
+function usmw_footer_seal()
+{
+    
+    return '<div class="usmw_seal"><img class="no-border-img" src="/themes/usmw/images/decoration.png" alt="U.S. Mexico War logo"></div>';
+    
+}
+
+function get_formats()
+{
+    
+    $f = array( '-', //not used
+                'Essays',
+                'Broadsides',
+                'Correspondence',
+                'Diaries & Journals',
+                'Music & Poetry',
+                'Newspapers', 
+                'Pamphlets',
+                'Images',
+                'Maps',
+                'People',
+                'Sermons',
+                'Speeches & Oration' 
+                );
+    
+    return $f;
+}
+
+function format_name($id)
+{
+    $id = (int)$id;
+    $formats = get_formats();
+    
+    if($id > 0 && $id < count($formats))
+    {
+        
+        return $formats[$id];
+    }
+    
+    return '';   
+
+}
+
+
+
+function field_empty($f)
+{
+    if(!$f || $f === '' || $f === ' ') 
+    { return true; }
+    
+    return false;
+}
+
+function contact_email()
+{
+    return 'lynnfj@uta.edu';
+}
+
+function get_content_id()
+{
+    if(!isset($_GET['content_id']))
+    {
+        return null;
+    }
+    
+    return $_GET['content_id'];
+    
+}
+
+function get_bio_id()
+{
+    if(!isset($_GET['bio_id']))
+    {
+        return null;
+    }
+    
+    return $_GET['bio_id'];
+    
+}
+
+function get_sorting()
+{
+    if(!isset($_GET['sort']))
+    {
+        return null;
+    }
+    
+    return $_GET['sort'];
+    
+}
+
+
+function get_content_node()
+{
+    $id = get_content_id();
+    
+    if(!$id)
+    {
+       return null;
+    }
+    
+    $nid = db_access_get_nid_by_content_id((int)$id);
+    
+    $c = node_load($nid);
+    
+    return $c;
+}
+
+function get_bio_node()
+{
+    $id = get_bio_id();
+    
+    if(!$id)
+    {
+       return null;
+    }
+    
+    $nid = db_access_get_nid_by_bio_id((int)$id);
+    
+    //echo 'loading bio ' . $nid;
+    
+    $b = node_load($nid);
+    
+    return $b;
+    
+}
+
+
+function topic_breadcrumbs($t, $topic_format_id, $content_id, $bio_id)
+{
+    //echo 'topic_format:' .$topic_format_id . ' content:' . $content_id . ' bio:' . $bio_id;
+    
+    
+    $topic_id = $t->field_topic_id[LANGUAGE_NONE][0]['value'];
+    $major_topics = get_major_topics();
+    
+    $major_topic = null;
+    
+    forEach($major_topics as $m)
+    {
+        if(db_access_is_id_in_list($m->topics, $topic_id) || $m->intro == $topic_id)
+        {
+            $major_topic = $m;
+            break;
+        }
+        
+    }
+    
+    $h = '';
+    
+    $h .= '<div class="breadcrumbs">';
+    
+    $h .= '<a href="'.site_root().'/topic">Major Topics</a> &gt';
+    
+    if($major_topic)
+    {
+        //echo '<br>' . json_encode($major_topic);
+        
+        if($major_topic->intro == $topic_id)
+        {
+            $h .= '<a href="topic?topic_id='.$major_topic->intro.'">'. $major_topic->label .'</a> &gt';
+        }
+        else {
+            $h .= '<a href="topic?topic_id='.$major_topic->intro.'">'. $major_topic->label .'</a> &gt'; 
+        }
+        
+        if(!$topic_format_id)
+        {
+            $h .= $t->field_topic_name[LANGUAGE_NONE][0]['value'];
+        }
+        
+        else if($topic_format_id && $content_id)
+        {
+            //echo 'content mode';
+            $nid = db_access_get_nid_by_content_id((int)$content_id);
+            $c = node_load($nid);
+            
+            $h .= '<a href="topic?topic_id='.$topic_id.'">'. $t->field_topic_name[LANGUAGE_NONE][0]['value'] .'</a> &gt'; 
+            $h .= '<a href="topic_format?topic_id='.$topic_id.'&format_id='.$topic_format_id.'">'.format_name((int)$topic_format_id).'</a>  &gt';
+            
+            
+            $h .= $c->field_content_title[LANGUAGE_NONE][0]['value'];
+            
+        }
+        
+        else if($topic_format_id && $bio_id)
+        {
+            //echo 'bio mode';
+            $nid = db_access_get_nid_by_bio_id((int)$bio_id);
+            $b = node_load($nid);
+            
+            
+            $h .= '<a href="topic?topic_id='.$topic_id.'">'. $t->field_topic_name[LANGUAGE_NONE][0]['value'] .'</a> &gt';
+            
+            $h .= '<a href="topic_format?topic_id='.$topic_id.'&format_id='.$topic_format_id.'">'.format_name((int)$topic_format_id).'</a>  &gt';
+            $h .= bio_name($b);
+            
+            
+        }
+        
+        else if($topic_format_id)
+        {
+            //echo 'topic mode';
+            $h .= '<a href="topic?topic_id='.$topic_id.'">'. $t->field_topic_name[LANGUAGE_NONE][0]['value'] .'</a> &gt'; 
+            $h .= format_name((int)$topic_format_id); 
+        }
+        
+    }
+    
+    else {
+        
+        //no major topic
+        //echo ' no major topic';
+    }
+    
+    $h .= '</div>';
+    
+    return $h;
+}
+
+
+
+
+
+//breadcrumbs are usmw_menu_elements 
+function render_breadcrumbs($breadcrumbs)
+{
+    //usmw_get_menu_element($type, $id)
+    
+    $h = '';
+    
+    $h .= '<div class="breadcrumbs">';
+    
+    $count = 0;
+    
+    forEach($breadcrumbs as $b)
+    {
+        if($b->link)
+        {
+            $h .= '<a href="'.$b->link.'">';
+        }
+        
+        if($b->label)
+        {
+            $h .= $b->label;
+        }
+        
+        if($b->link)
+        {
+            $h .= '</a>';
+        }
+        
+        
+        if($count < count($b))
+        {
+            $h .= '&gt;';
+        }
+        
+        $count++;
+    }
+    
+    $h .= '</div>';
+    
+    return $h;
+    
+    
+}
+
+
+function sub_content_breadcrumbs($content, $label)
+{
+    $h = '';
+    $h .= '<div class="breadcrumbs">';
+    
+    
+    $link = site_root() . '/item?content_id=' . $content->field_content_id[LANGUAGE_NONE][0]['value'];
+    //<a href="#">Major Topics</a> &gt;<a href="topic?topic_id=14">War In The West</a> &gt;Bear Flag Revolt</div>';
+    
+    $h .= '<a href="'.$link.'">'.$content->field_content_title[LANGUAGE_NONE][0]['value'].'</a>';
+    $h .= '&gt;';
+    
+    $h .= $label;
+    
+    $h .= '</div>';
+    
+    return $h;
+}
+
+
+function hide_default_breadcrumbs()
+{
+   return '<style> .breadcrumb { display:none; }</style>';
+}
+
+//convert dynamic menu elements into json for client side edit
+function bake_menu_edits()
+{
+    //get_drupal_tree_edits('main-menu');
+    //echo '<br><br>' . json_encode(menu_tree_all_data('main-menu')) . '<br><br>';
+    
+    $h ='';
+    
+    $s1 = "_usmw_menu_root_json = '" . get_root_menu() . "'";
+    
+    $s2 = "_usmw_menu_edits_json = '" . get_menu_edits() . "'";
+    
+    $h .= '<script>' . $s1 . '</script>';
+    $h .= PHP_EOL . PHP_EOL . '<script>' . $s2 . '</script>';
+    
+    return $h;
+    
+}
+
+
+function get_drupal_tree_edits($menu)
+{
+    $tree = menu_tree_all_data($menu);
+    
+    $edits = []; 
+    
+    forEach($tree as $m)
+    {
+        //echo '<br><br>' . json_encode($m['below']);
+        
+        if(count($m['below']) > 0)
+        {
+            $new_leaf = new stdClass();
+            
+            
+            echo '<br>' . $m['link']['link_title'];
+            
+            
+            forEach($m['below'] as $link)
+            {
+                
+                //echo '<br>2' . $link['link']['link_title'];
+                echo '<br>2' . '<a href="'.$link['link']['link_path'] .'">'.$link['link']['link_title'].'</a>';
+                
+                
+                
+                
+                //echo '<br><br>' . json_encode($link);
+                
+            }
+            
+            
+        }
+        
+        
+    }
+    
+    //var_dump($tree);
+    return $edits;
+    
+}
+
+function get_menu_edits()
+{
+    $edits = [];
+    
+    
+    // -- Browse menu
+    
+    $browse = new stdClass();
+    $browse->label = 'Browse';
+    $browse->append = 'About';
+    $browse->leaf = [];
+    
+    array_push($browse->leaf, usmw_get_menu_element('format', 1)); //essays
+    array_push($browse->leaf, usmw_get_menu_element('format', 8)); //images
+    array_push($browse->leaf, usmw_get_menu_element('format', 9)); //maps
+    
+    
+    //people
+    $browse_people = new stdClass();
+    $browse_people->label = 'People';
+    $browse_people->parent = 'Browse';
+    $browse_people->append = 'Essays';
+    $browse_people->leaf = [];
+    
+    array_push($browse_people->leaf, new usmw_menu_element( 'format?format_id=10&nation=Mexico', 'Mexico'));
+    array_push($browse_people->leaf, new usmw_menu_element( 'format?format_id=10&nation=US', 'US'));
+    
+    
+    //documents
+    
+    $browse_documents = new stdClass();
+    $browse_documents->label = 'Documents';
+    $browse_documents->parent = 'Browse';
+    $browse_documents->append = 'Essays';
+    $browse_documents->leaf = [];
+    
+    $documents = [2,3,4,5,6,7,11,12]; 
+
+    forEach($documents as $document) {
+        
+        array_push($browse_documents->leaf, usmw_get_menu_element('format', $document)); 
+    }
+    
+    
+    
+    //order is important (parents before children)
+    array_push($edits, $browse);
+    array_push($edits, $browse_documents);
+    array_push($edits, $browse_people);
+    
+    // -- end Browse menu
+    
+    
+    // -- Major topics menu
+    
+    $m = get_major_topics();
+    
+    $major_topics = new stdClass();
+    $major_topics->label = 'Major Topics';
+    $major_topics->append = 'About';
+    $major_topics->mobile_override = site_root() . '/#home_page_panels'; //override link
+    $major_topics->leaf = [];
+    
+    array_push($edits, $major_topics);
+    
+    $topics_list = ''; //csv
+    
+    $count = 0;
+    
+    forEach($m as $topic)
+    {
+        if($count == 0 )
+        {
+            $topics_list .= $topic->topics;
+            
+        }
+        
+        else {
+            
+            $topics_list .= ',' . $topic->topics;
+        }
+        
+        $count++;
+    }
+    
+    //echo '<br>topics list ' . json_encode($topics_list);
+    
+    $topic_titles  = get_topic_titles_from_list($topics_list);
+    
+    //echo '<br>' . json_encode($topic_titles);
+    
+    forEach($m as $topic)
+    {
+        $new_leaf = new stdClass();
+        $new_leaf->label = $topic->label;
+        $new_leaf->parent = 'Major Topics';
+        $new_leaf->leaf = [];
+        
+        
+        $list = db_access_list_to_ids($topic->topics);
+        
+        array_push($new_leaf->leaf, new usmw_menu_element('topic?topic_id='.$topic->intro, 'Introduction')); //maps
+        
+        forEach($list as $id)
+        {
+            forEach($topic_titles as $title)
+            {
+               if($id == $title->topic_id)
+               {    
+                    array_push($new_leaf->leaf, new usmw_menu_element('topic?topic_id='.$title->topic_id, json_safe($title->title)) ); //maps
+                    
+               }
+            }
+
+        }
+        
+        array_push($edits, $new_leaf);
+        
+        
+    }
+    
+    //echo 'get_topic_titles_from_list ' . json_encode(get_topic_titles_from_list($topics_list));
+    
+    //-- drupal tree
+    
+    
+    $drupal_tree = menu_tree_all_data('main-menu');
+    
+    
+    forEach($drupal_tree as $m)
+    {
+        //echo '<br><br>' . json_encode($m);
+        
+        if(count($m['below']) == 0)
+        {
+            //echo '<br>' . $m['link']['link_title'];
+            //echo '<br>' . $m['link']['link_path'];
+            
+        }
+        
+        
+        if(count($m['below']) > 0)
+        {
+            $new_leaf = new stdClass();
+            $new_leaf->label = $m['link']['link_title'];
+            $new_leaf->append = $m['link']['link_title'];
+            $new_leaf->drupal_tree = true;
+            $new_leaf->drupal_tree_original = $m['link']['mlid'];
+            $new_leaf->root_included = true;
+            $new_leaf->leaf = [];
+            
+            //echo '<br>' . $m['link']['link_title'];
+            //echo '<br>' . $m['link']['mlid'];
+            
+            forEach($m['below'] as $link)
+            {
+                
+                //echo '<br>2' . $link['link']['link_title'];
+                //echo '<br>2' . '<a href="'.$link['link']['link_path'] .'">'.$link['link']['link_title'].'</a>';
+                
+                array_push($new_leaf->leaf, new usmw_menu_element(site_root(). '/' . $link['link']['link_path'], $link['link']['link_title'])); 
+            }
+            
+            
+            array_push($edits, $new_leaf);
+            
+        }
+        
+    }
+    
+    
+    
+    return json_encode($edits);
+    
+    
+}
+
+
+function get_root_menu()
+{
+    $menu = [];
+    
+    $drupal_tree = menu_tree_all_data('main-menu');
+    
+    forEach($drupal_tree as $m)
+    {
+        
+        $menu_item = new stdClass();
+        $menu_item->label = $m['link']['link_title'];
+        $menu_item->link =  $m['link']['link_path'];   
+        $menu_item->sublinks = count($m['below']);
+        
+        array_push($menu, $menu_item);
+    }
+    
+    return json_encode($menu);
+    
+}
+
+function usmw_render_get_page_title($default_title)
+{
+    //echo '<br>default ' . $default_title;
+    $default = '';
+    if(explode('|', $default_title) && !drupal_is_front_page())
+    {
+        $default = explode('|', $default_title)[0];
+    }
+    
+    
+    
+    $page_type = get_page_type(current_path());
+    
+    $base = 'A Continent Divided: The U.S.-Mexico War';
+    $details = null;
+    
+    if(drupal_is_front_page())
+    {
+        return $base;
+    }
+    
+    if($page_type == 'main_search')
+    {
+        $details = 'Search Results ';
+    }
+    
+    if($page_type == 'item')
+    {
+        $b = get_bio_node();
+    
+        if($b)
+        {
+           $details = 'People: ' . bio_name($b) . ' ';
+        }
+        
+        else 
+        {
+            $c = get_content_node();
+            if($c)
+            {
+               $f = format_name($c->field_format_id["und"][0]["value"]);
+               
+               $details = $f . ': ' . $c->field_content_title[LANGUAGE_NONE][0]['value'];
+               
+            }
+            
+            
+        }
+    
+    }
+    
+    if($page_type == 'format')
+    {
+        if(isset($_GET['format_id']))
+        {
+            //return 'format not found';
+            
+            $format = format_name((int)$_GET['format_id']);
+            $details = 'Browse: ' . $format . ' ';
+        }
+        
+        
+    }
+    
+    if($page_type == 'topic' || $page_type == 'topic_format')
+    {
+        if(isset($_GET['topic_id']))
+        {
+        
+            $topic_id = $_GET['topic_id'];
+            $major_topics = get_major_topics();
+            $major_topic = null;
+            
+            forEach($major_topics as $t)
+            {
+               
+               if($topic_id == $t->intro)
+               {
+                   $major_topic = $t;
+               }
+               
+            }
+            
+            if($major_topic)
+            {
+                $details = "Introduction: " . $major_topic->label . ' ';
+            }
+            
+            $nid = db_access_get_nid_by_topic_id((int)$topic_id);
+            $topic = node_load($nid);
+            
+            if($topic)
+            {
+                $details = $topic->field_topic_name[LANGUAGE_NONE][0]['value'] .  ' ';
+                
+                if($page_type == 'topic_format')
+                {
+                    if(isset($_GET['format_id']))
+                    {
+                        //return 'format not found';
+                        
+                        $format = format_name((int)$_GET['format_id']);
+                        $details .= ': ' . $format . ' ';
+                    }
+                }
+            }
+                
+        }
+        
+    }
+    
+    
+    
+    if($details)
+    {
+       return $details . '| ' . $base; 
+    }
+    
+    return $default . '| ' . $base; 
+    
+}
+
+function usmw_render_get_page_breadcrumbs()
+{
+    $breadcrumbs = [];
+    
+    
+    $drupal_tree = menu_tree_all_data('main-menu');
+    
+    forEach($drupal_tree as $m)
+    {
+        //echo '<br><br>' . json_encode($m);
+        
+        if(count($m['below']) > 0)
+        {
+            
+            $is_current_leaf = false;
+            
+            
+            forEach($m['below'] as $link)
+            {
+                 if($link['link']['link_path'] == current_path())
+                {
+                    $is_current_leaf = true;
+                }
+                
+            }
+            
+            if($is_current_leaf)
+            {
+                forEach($m['below'] as $link)
+                {
+                    
+                    $href = site_root(). '/' . $link['link']['link_path'];
+                    
+                    if($link['link']['link_path'] == current_path())
+                    {
+                        array_push($breadcrumbs, '<div class="module-link activetype"><a href="'. $href.'">'.$link['link']['link_title'].'</a></div>');
+                    }
+                    
+                    else {
+                        
+                        array_push($breadcrumbs, '<div class="module-link "><a href="'. $href.'">'.$link['link']['link_title'].'</a></div>');
+                        
+                    }
+                }
+                
+            }
+            
+            
+        }
+           
+    }
+    
+    
+    
+    return '<div style="width:100%;clear:both;"><div class="drupal_tree_breadcrumbs">' . join($breadcrumbs) . '</div></div>';
+    
+    
+    
+}
+
+
+function usmw_get_menu_element($type, $id)
+{
+    
+    
+    
+    $e = new usmw_menu_element('#', 'error');
+    
+    //$e->link = '#';
+    //$e->label = 'error';
+    
+    if($type === 'format')
+    {
+        $e->link = 'format?format_id=' . $id;
+        
+        $e->label = get_formats()[$id];
+        
+    }
+    
+    return $e;
+    
+    
+}
+
+
+function site_root()
+{ return 'http://drupaltest.space'; }
+
+
+
+
+function usmw_render_page_additions()
+{
+    echo bake_menu_edits();
+}
+
+class usmw_menu_element {
+    
+    var $link;
+    var $label;
+    
+    public function __construct($lnk, $lbl)
+    {
+        $this->link = $lnk;
+        $this->label = $lbl;
+    }
+}
+
+class usmw_major_topic
+{
+    var $label;
+    var $intro;
+    var $topics; //csv
+    
+    public function __construct($lbl, $intr, $t)
+    {
+        $this->label = $lbl;
+        $this->intro = $intr;
+        $this->topics = $t;
+    }
+}
+
+
+function get_major_topics()
+{
+    $t = [];
+    
+    array_push($t, new usmw_major_topic('Road To War', 'roadtowar', '1,44,45,46,47,2,3'));
+    array_push($t, new usmw_major_topic('Army Of Occupation', 'armyofoccupation', '4,5,6,7'));
+    array_push($t, new usmw_major_topic('Northern Campaign', 'northerncampaign', '8,9,10,11,12,13'));
+    array_push($t, new usmw_major_topic('War In The West', 'warinthewest', '14,15,16,17,48,49'));
+    array_push($t, new usmw_major_topic('War At Sea', 'waratsea', '18,19,20'));
+    array_push($t, new usmw_major_topic('War In The South', 'warinthesouth', '21,22,23,24,25,26,27,50'));
+    array_push($t, new usmw_major_topic('Women And The War', 'womenandthewar', '28,29'));
+    array_push($t, new usmw_major_topic('War At Home', 'warathome', '51,52,42,30,31,32,33'));
+    array_push($t, new usmw_major_topic('Occupation & Aftermath', 'occupationandaftermath', '34,35,36,37,38,39,40,53,43'));
+    
+    return $t;
+    
+}
+
+
+function json_safe($t)
+{
+    $t = str_replace("'", "", $t);
+    return $t;
+}
+
+
+
+function render_developer_page()
+{
+    $h = '';
+    /*
+    drupal_set_title('Developer Page');
+    
+    $h .= '<br><a href="http://drupaltest.space/node/188">View All Contents</a>';
+    $h .= '<br><br><a href="http://drupaltest.space/node/16">View All Topics</a>';
+    */
+    
+    return $h;
+    
+}
+
+function two_column($col1_content, $col2_content)
+{
+    $h = '';
+    $h .= '<div class="three_column_row">';
+         
+    $h .= '<div class="col1 center_wrapper">';
+    $h .= '<div>'. $col1_content .'</div>';
+    $h .= '</div>';
+    
+    $h .= '<div class="col2_alt center_wrapper">';
+    $h .= '<div>'. $col2_content .'</div>';
+    $h .= '</div>';
+
+    $h .= '</div>';
+    
+    return $h;
+}
+
+
+function three_column($col1_content, $col2_content, $col3_content)
+{
+    $h = '';
+    $h .= '<div class="three_column_row">';
+         
+    $h .= '<div class="col1 center_wrapper">';
+    $h .= '<div>'. $col1_content .'</div>';
+    $h .= '</div>';
+    
+    $h .= '<div class="col2 center_wrapper">';
+    $h .= '<div>'. $col2_content .'</div>';
+    $h .= '</div>';
+    
+    $h .= '<div class="col3 center_wrapper">';
+    $h .= '<div>'. $col3_content .'</div>';
+    $h .= '</div>';
+    
+    $h .= '</div>';
+    
+    return $h;
+}
+
+
+function two_column_header($link)
+{
+    $h = '';
+    $h .= '<div class="three_column_row" style="clear:both;height:21px;">';
+         
+    $h .= '<div class="col1" style="height:21px;">';
+    $h .= '<div class="column_header"></div>';
+    $h .= '</div>';
+    
+    $h .= '<div class="col2_alt" style="height:21px;">';
+    $h .= '<div class="column_header">'.$link.'</div>';
+    $h .= '</div>';
+    
+    $h .= '</div>';
+    
+    return $h;
+}
+
+
+function three_column_header($second_link, $third_link)
+{
+    $h = '';
+    $h .= '<div class="three_column_row" style="clear:both;height:21px;">';
+         
+    $h .= '<div class="col1" style="height:21px;">';
+    $h .= '<div class="column_header"></div>';
+    $h .= '</div>';
+    
+    $h .= '<div class="col2" style="height:21px;">';
+    $h .= '<div class="column_header">'.$second_link.'</div>';
+    $h .= '</div>';
+    
+    
+    $h .= '<div class="col3" style="height:21px;">';
+    $h .= '<div class="column_header">'.$third_link.'</div>';
+    $h .= '</div>';
+    
+    $h .= '</div>';
+    
+    return $h;
+}
+
+
+function approximate_dates()
+{
+    return '<div class="approximate">(Approximate dates with *) </div>';
+}
+
+
+
+
+function get_prev_next_content($topic_format_contents, $offset)
+{
+    
+    
+    //echo 'offset' . $offset;
+    $end = count($topic_format_contents->filtered_contents);
+    
+    $h = '';
+    $h .= '<div id="items-pager">';
+    $h .= '<p id="pagination_p_id" align="right">';
+    
+    $previous = false;
+    
+    
+    if($offset > 0)
+    {
+        $prev_offset = ((int)$offset - 1);
+        
+        if($topic_format_contents->filtered_contents[$prev_offset])
+        {
+            $previous = true;
+            $prev_c = $topic_format_contents->filtered_contents[$prev_offset];
+            $prev_id = $prev_c->field_content_id[LANGUAGE_NONE][0]['value'];
+            
+            $prev_link = site_root() . '/item?content_id='.$prev_id.'&topic_id='.$topic_format_contents->topic_id.'&format_id='.$topic_format_contents->format_id;
+            
+            
+            $prev_link .= '&ofst=' . $prev_offset . '&ni=' . $end;
+            
+            //echo '<br>prev_link ' . $prev_link;
+            
+            $h .= '<a href="'.$prev_link.'">PREVIOUS</a>';
+            
+        }
+    }
+    
+    if($offset < ($end - 1))
+    {
+        $next_offset = ((int)$offset + 1);
+        
+        if($topic_format_contents->filtered_contents[$next_offset])
+        {
+            $next_c = $topic_format_contents->filtered_contents[$offset+1];
+            $next_id = $next_c->field_content_id[LANGUAGE_NONE][0]['value'];
+            
+            $next_link = site_root() . '/item?content_id='.$next_id.'&topic_id='.$topic_format_contents->topic_id.'&format_id='.$topic_format_contents->format_id;
+            
+            $next_link .= '&ofst=' . $next_offset . '&ni=' . $end;
+            
+            //echo '<br>next_link ' . $next_link;
+            
+            if($previous)
+            {
+                $h .= ' <img class="pagination_d_icon" src="' . site_root() . '/themes/usmw/images/arrow.png">';
+            }
+            $h .= '<a href="'.$next_link.'">NEXT</a>';
+        }
+        
+        
+    }
+    
+    $h .='</p>';
+    $h .= '</div>';
+    
+    return $h;
+    
+}
+
+
+function get_prev_next_format($format_contents, $offset)
+{
+    
+    //echo 'offset' . $offset;
+    $end = count($format_contents->contents);
+    
+    //echo '<br>' . $offset . ' ' .json_encode($format_contents->contents[(int)$offset]);
+    
+    //i don't know why this is needed...
+    $contents = [];
+    forEach($format_contents->contents as $c)
+    {
+        array_push($contents, $c);
+    }
+    
+    
+    $sorting = get_sorting();
+    
+    $h = '';
+    $h .= '<div id="items-pager">';
+    $h .= '<p id="pagination_p_id" align="right">';
+    
+    $previous = false;
+    
+    
+    if($offset > 0)
+    {
+        $prev_offset = ((int)$offset - 1);
+        
+        //echo '<Br>' . json_encode($format_contents->contents[0]);
+        
+        if($contents[$prev_offset])
+        {
+            $previous = true;
+            $prev_c = $contents[$prev_offset];
+            $prev_id = $prev_c->field_content_id[LANGUAGE_NONE][0]['value'];
+            
+            $prev_link = site_root() . '/item?content_id='.$prev_id.'&format_id='.$format_contents->format_id;
+            
+            $prev_link .= '&ofst=' . $prev_offset . '&ni=' . $end;
+            
+            $h .= '<a href="'.$prev_link.'">PREVIOUS</a>';
+            
+        }
+    }
+    
+    if($offset < ($end - 1))
+    {
+        $next_offset = ((int)$offset + 1);
+        
+        if($contents[$next_offset])
+        {
+            $next_c = $contents[$next_offset];
+            $next_id = $next_c->field_content_id[LANGUAGE_NONE][0]['value'];
+            
+            $next_link = site_root() . '/item?content_id='.$next_id.'&format_id='.$format_contents->format_id;
+            
+            $next_link .= '&ofst=' . $next_offset . '&ni=' . $end;
+            
+            //echo '<br>next_link ' . $next_link;
+            
+            if($previous)
+            {
+                $h .= ' <img class="pagination_d_icon" src="' . site_root() . '/themes/usmw/images/arrow.png">';
+            }
+            $h .= '<a href="'.$next_link.'">NEXT</a>';
+        }
+        
+        
+    }
+    
+    $h .='</p>';
+    $h .= '</div>';
+    
+    return $h;
+}
+
+
+function get_prev_next_format_bio($format_bios, $offset)
+{
+    
+    $bios = $format_bios->bios;
+    $nation = $format_bios->nation;
+    $nationality = $format_bios->nationality;
+    
+    /*
+    $sorting = get_sorting();
+    */
+    
+    //i don't know why this is needed...
+    $bios = [];
+    forEach($format_bios->bios as $b)
+    {
+        array_push($bios, $b);
+    }
+    
+    
+    $end = count($bios);
+    
+    $h = '';
+    $h .= '<div id="items-pager">';
+    $h .= '<p id="pagination_p_id" align="right">';
+    
+    $previous = false;
+    
+    
+    if($offset > 0)
+    {
+        $prev_offset = ((int)$offset - 1);
+        
+        if($bios[$prev_offset])
+        {
+            $previous = true;
+            $prev_b = $bios[$prev_offset];
+            $prev_id = $prev_b->field_bio_id[LANGUAGE_NONE][0]['value'];
+            
+            $prev_link = site_root() . '/item?bio_id='.$prev_id . '&nation=' . $format_bios->nation;
+            
+            
+            $prev_link .= '&ofst=' . $prev_offset . '&sort=' . $format_bios->sorting .  '&ni=' . $end;
+            
+            
+            $h .= '<a href="'.$prev_link.'">PREVIOUS</a>';
+            
+        }
+    }
+    
+    if($offset < ($end - 1))
+    {
+        $next_offset = ((int)$offset + 1);
+        
+        if($bios[$next_offset])
+        {
+            $next_b = $bios[$offset+1];
+            $next_id = $next_b->field_bio_id[LANGUAGE_NONE][0]['value'];
+            
+            $next_link = site_root() . '/item?bio_id='.$next_id . '&nation=' . $format_bios->nation;
+            
+            
+            $next_link .= '&ofst=' . $next_offset . '&sort=' . $format_bios->sorting . '&ni=' . $end;
+            
+            
+            if($previous)
+            {
+                $h .= ' <img class="pagination_d_icon" src="' . site_root() . '/themes/usmw/images/arrow.png">';
+            }
+            $h .= '<a href="'.$next_link.'">NEXT</a>';
+        }
+        
+        
+    }
+    
+    $h .='</p>';
+    $h .= '</div>';
+    
+    return $h;
+    
+    
+}
+
+
+
+
+function get_prev_next_bio($topic_format_bios, $offset)
+{
+    
+    /*
+    $topic_format_bios = new stdClass();
+    $topic_format_bios->format_id = $format_id;
+    $topic_format_bios->topic_id = $topic_id;
+    $topic_format_bios->sorting = $sorting;
+    $topic_format_bios->bios = $bios;
+    */
+    
+    //i don't know why this is needed...
+    $bios = [];
+    forEach($topic_format_bios->bios as $b)
+    {
+        array_push($bios, $b);
+    }
+    
+    
+    $end = count($bios);
+    
+    $h = '';
+    $h .= '<div id="items-pager">';
+    $h .= '<p id="pagination_p_id" align="right">';
+    
+    $previous = false;
+    
+   
+    if($offset > 0)
+    {
+        $prev_offset = ((int)$offset - 1);
+        
+        if($bios[$prev_offset])
+        {
+            $previous = true;
+            $prev_b = $bios[$prev_offset];
+            $prev_id = $prev_b->field_bio_id[LANGUAGE_NONE][0]['value'];
+            
+            $prev_link = site_root() . '/item?bio_id='.$prev_id.'&topic_id='.$topic_format_bios->topic_id.'&format_id='.$topic_format_bios->format_id;
+            
+            
+            $prev_link .= '&ofst=' . $prev_offset . '&ni=' . $end;
+            
+            
+            $h .= '<a href="'.$prev_link.'">PREVIOUS</a>';
+            
+        }
+    }
+    
+    if($offset < ($end - 1))
+    {
+        $next_offset = ((int)$offset + 1);
+        
+        if($bios[$next_offset])
+        {
+            $next_b = $bios[$offset+1];
+            $next_id = $next_b->field_bio_id[LANGUAGE_NONE][0]['value'];
+            
+            $next_link = site_root() . '/item?bio_id='.$next_id.'&topic_id='.$topic_format_bios->topic_id.'&format_id='.$topic_format_bios->format_id;
+            
+            
+            $next_link .= '&ofst=' . $next_offset . '&ni=' . $end;
+            
+            
+            if($previous)
+            {
+                $h .= ' <img class="pagination_d_icon" src="' . site_root() . '/themes/usmw/images/arrow.png">';
+            }
+            $h .= '<a href="'.$next_link.'">NEXT</a>';
+        }
+        
+        
+    }
+    
+    
+    
+    $h .='</p>';
+    $h .= '</div>';
+    
+    return $h;
+    
+}
+
+
+
+
+
+
+
+function get_page_link($page, $id, $id2, $sorting)
+{
+   $link = site_root() . '/';
+   
+   if($page == 'format')
+   {
+       $link .= 'format?format_id=' . $id;
+   }
+   
+   if($page == 'topic_format')
+   {
+       $link .= 'topic_format?topic_id=' . $id . '&format_id=' . $id2;
+   }
+   
+   if($page == 'bio')
+   {
+       $link .= 'item?bio_id=' . $id . '&nation=' . $id2;
+   }
+   
+   if($page == 'format_bio')
+   {
+       $link .= 'format?format_id=10&nation=' . $id;
+   }
+
+   
+   if($sorting)
+   {
+       $link .= '&sort='. $sorting;
+   }
+   
+   return $link;
+}
+
+function get_sorting_tags($sort)
+{
+    $tags = new stdClass();
+    
+    $mobile_prefix = '<div class="mobile_show_inline" style="text-decoration: underline;">Sort By&nbsp;</div>';
+    
+    $tags->title = 'titledesc';
+    $tags->title_label = $mobile_prefix . 'Title ▲';
+    
+    $tags->date = 'datedesc';
+    $tags->date_label = $mobile_prefix . 'Date ▲';
+    
+    $tags->name = 'namedesc';
+    $tags->name_label = $mobile_prefix . 'Name ▼';
+    
+    $tags->search = 'asc';
+    $tags->search_label = $mobile_prefix . 'Title ▲';
+    
+    if($sort == 'titledesc')
+    {
+       $tags->title = 'titleasc'; 
+       $tags->title_label = $mobile_prefix . 'Title ▼';
+    }
+    
+    if($sort == 'datedesc')
+    {
+       $tags->date = 'dateasc';
+       $tags->date_label = $mobile_prefix . 'Date ▼';
+    }
+    
+    if($sort == 'namedesc')
+    {
+        $tags->name = 'nameasc';
+        $tags->name_label = $mobile_prefix . 'Name ▲';
+    }
+    
+    if($sort == 'asc')
+    {
+        $tags->search = 'desc';
+        $tags->search_label = $mobile_prefix . 'Title ▼';
+    }
+    
+    
+    return $tags;
+    
+}
+
+
+function sort_contents($contents, $sorting)
+{
+    
+    if(!$sorting || $sorting == '')
+    {
+        //echo '<br> no sorting';
+        $sorting == 'titledesc';
+    }
+    
+    if($sorting == 'titleasc' || $sorting == 'asc')
+    {   
+        usort($contents, function($a, $b) {
+            
+        return strcmp($a->field_content_title[LANGUAGE_NONE][0]['value'], $b->field_content_title[LANGUAGE_NONE][0]['value']);
+        
+        });
+        
+        
+    }
+    
+    if($sorting == 'titledesc' || $sorting == 'desc')
+    {   
+        usort($contents, function($a, $b) {
+            
+        return strcmp($b->field_content_title[LANGUAGE_NONE][0]['value'], $a->field_content_title[LANGUAGE_NONE][0]['value']);
+        
+        });
+        
+        
+    }
+    
+    if($sorting == 'dateasc')
+    {   
+        usort($contents, function($a, $b) {
+        return get_sort_time($a->field_content_time_coverage_star[LANGUAGE_NONE][0]['value']) - get_sort_time($b->field_content_time_coverage_star[LANGUAGE_NONE][0]['value']);
+        });
+        
+        
+    }
+    
+    if($sorting == 'datedesc')
+    {   
+        usort($contents, function($a, $b) {
+        return get_sort_time($b->field_content_time_coverage_star[LANGUAGE_NONE][0]['value']) - get_sort_time($a->field_content_time_coverage_star[LANGUAGE_NONE][0]['value']);
+        });
+        
+        
+    }
+    
+    
+    
+    return $contents;
+}
+
+
+
+function sort_topics($topics, $sorting)
+{
+    
+    if(!$sorting || $sorting === '')
+    {
+        //echo '<br> no sorting';
+        $sorting == 'asc';
+    }
+    
+    if($sorting == 'asc')
+    {   
+        usort($topics, function($a, $b) {
+            
+        return strcmp($a->field_topic_name[LANGUAGE_NONE][0]['value'], $b->field_topic_name[LANGUAGE_NONE][0]['value']);
+        
+        });
+        
+        
+    }
+    
+    if($sorting == 'desc')
+    {   
+        usort($topics, function($a, $b) {
+            
+        return strcmp($b->field_topic_name[LANGUAGE_NONE][0]['value'], $a->field_topic_name[LANGUAGE_NONE][0]['value']);
+        
+        });
+        
+        
+    }
+    
+    return $topics;
+}
+
+
+function sort_bios($bios, $sorting)
+{
+    
+    
+    if(!$sorting || $sorting == '')
+    {
+        //echo '<br> no sorting';
+        $sorting == 'namedesc';
+    }
+    
+    if($sorting == 'nameasc' || $sorting == 'asc')
+    {   
+        usort($bios, function($a, $b) {
+        
+        return strcmp(bio_sort_name($a), bio_sort_name($b));
+        
+        });
+        
+        
+    }
+    
+    if($sorting == 'namedesc' || $sorting == 'desc')
+    {   
+        
+        usort($bios, function($a, $b) {
+        
+        return strcmp(bio_sort_name($b), bio_sort_name($a));
+        
+        });
+        
+        
+    }
+    
+    
+    return $bios;
+}
+
+
+
+
+function bio_name($bio)
+{
+    $name = '';
+    
+    if(isset($bio->field_bio_forename[LANGUAGE_NONE][0]['value']))
+    {
+        $name .= $bio->field_bio_forename[LANGUAGE_NONE][0]['value'];
+    }
+    
+    if(isset($bio->field_bio_surname[LANGUAGE_NONE][0]['value']))
+    {
+        $name .= ' ' . $bio->field_bio_surname[LANGUAGE_NONE][0]['value'];
+    }
+    
+    
+    return $name;
+}
+
+function bio_sort_name($bio)
+{
+    $name = '';
+    
+    if(isset($bio->field_bio_surname[LANGUAGE_NONE][0]['value']))
+    {
+        $name .= ' ' . $bio->field_bio_surname[LANGUAGE_NONE][0]['value'];
+    }
+
+    if(isset($bio->field_bio_forename[LANGUAGE_NONE][0]['value']))
+    {
+        $name .= $bio->field_bio_forename[LANGUAGE_NONE][0]['value'];
+    }
+    
+    return $name;
+}
+
+
+function get_sort_time($date)
+{
+    
+    $sort_time = (int)str_replace('-','',$date);
+    
+    if(!isset($date) || !$date || $date == '0000-00-00' || $date == '')
+    {
+        $sort_time = 0;
+    }
+    
+    
+    
+    //echo '<br>' . $sort_time;
+    
+    return $sort_time;
+}
+
+
+/** temp search placement **/
+
+function usmw_render_preprocess_search_results(&$variables) {
+  
+  foreach ($variables['results'] as $result) {
+      
+      
+    /*
+    $variables['search_results'] .= theme('search_result', array(
+      'result' => $result,
+      'module' => $variables['module'],
+    ));
+    */
+    
+    //echo '<br>' . json_encode($result);
+  }
+
+
+  /*
+  $variables['search_results'] = '';
+  if (!empty($variables['module'])) {
+    $variables['module'] = check_plain($variables['module']);
+  }
+  foreach ($variables['results'] as $result) {
+    $variables['search_results'] .= theme('search_result', array(
+      'result' => $result,
+      'module' => $variables['module'],
+    ));
+  }
+  $variables['pager'] = theme('pager', array(
+    'tags' => NULL,
+  ));
+  $variables['theme_hook_suggestions'][] = 'search_results__' . $variables['module'];
+  */
+}
+
+function usmw_edit_link($node)
+{
+    if(usmw_is_admin())
+    {
+        return '<p><strong><a href="'.site_root(). '/node/'. $node->nid . '">Edit USMW Item</a></strong></p>';
+    }
+    
+    return '';
+}
+
+function usmw_is_admin()
+{
+    if (user_access('administer site configuration')) {
+      return true;   
+    }
+    
+    return false;
+}
+
+function usmw_search_bar()
+{
+    $h = '';
+    
+    $h .= '<div id="formsearch">';
+    $h .= '<h3>SEARCH</h3>';
+    $h .= '<form method="post" action="'.site_root().'/mainsearch">';
+    $h .= '<input type="text" name="searchstring" id="searchstring">';
+    $h .= '<input type="submit" name="Search" id="search result" value="" class="imgsearch">';
+    $h .= '<br>';
+    $h .= '<b><a href="'.site_root().'/advancedsearch">▸ Narrow your search</a></b>';
+    $h .= '</form>';
+    $h .= '</div>';
+    
+    return $h;   
+    
+}
+
+function back_to_top()
+{
+    return '<div style="align:right;float:right;margin-right:20px;"><a href="#top">Back to Top</a></div>';
+    
+}
+
+function title_with_back($title, $anchor)
+{
+    $h = '';
+    
+    $h .= '<div>';
+    
+    $h .= '<div class="usmw_title_wrap"><h3 id="'.$anchor.'">'.$title.'</h3></div>';
+    $h .= '<div class="usmw_title_wrap back"><a href="#top">Back to Top</a></div>';
+    
+    $h .= '</div>';
+    
+    return $h;
+     
+}
+
+
+function usmw_valid($field)
+{
+    //check for empty, unset fields, etc
+    
+    //und is not present, is empty array, fixes 'Undefined index: und' warning
+    if(!isset($field) || $field == array())
+    { 
+       return false;
+    }
+    
+    
+    return true;
+    
+}
+
+function usmw_validator($field)
+{
+    //return '' for empty, unset fields, etc
+    if(!usmw_valid($field))
+    {
+        return '';
+    }
+    
+    return $field[LANGUAGE_NONE][0]['value'];
+    
+}
+
+
+//is this a good idea or?
+error_reporting(0); 
+
+
