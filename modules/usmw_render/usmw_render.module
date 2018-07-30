@@ -4294,7 +4294,7 @@ function usmw_get_menu_element($type, $id)
 
 
 function site_root()
-{ return 'http://drupaltest.space'; }
+{ return 'http://library-test.uta.edu/usmexicowar'; }
 
 
 
