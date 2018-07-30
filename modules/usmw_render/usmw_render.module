@@ -2951,7 +2951,7 @@ function render_home_page()
     $h = '';
     
     
-    $h .= file_get_contents('http://drupaltest.space/usmw_includes/timeline.html');
+    $h .= file_get_contents('http://library-test.uta.edu/usmexicowar/usmw_includes/timeline.html');
     
     
     $h .= '<div class="timeline_text" style="text-align:right;"><a href="'.site_root().'/timeline">Text version of timeline</a></div>';
@@ -2970,7 +2970,7 @@ function render_home_page()
     
     $h .= '<p>Is the largest and most significant armed struggle between two nations in the western hemisphere. In Mexico, the war left a legacy of bitterness that can be seen to this day. In the United States, tensions between North and South soon eclipsed the clash with Mexico in the national imagination. Abraham Lincoln alluded to these tensions when he described the United States in 1858 as "a house divided." A decade earlier, however, North America was a divided continent, the site of conflict between two republics that had forged two very different destinies since winning their independence from European power.</p>';
     
-    $h .= '<p><a href="http://drupaltest.space/timeline">War Timeline</a></p>';
+    $h .= '<p><a href="http://library-test.uta.edu/usmexicowar/timeline">War Timeline</a></p>';
     
     $h .= '</div>';
     

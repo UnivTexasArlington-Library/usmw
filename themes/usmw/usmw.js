@@ -956,7 +956,7 @@ function home_page_slideshow()
        _home_page_slides.previous_slide_html = _home_page_slides.current_slide_html;
    }
    
-   var slide_update = '<div class="i"><a href="'+s.link+'"><img src="http://drupaltest.space/themes/usmw/includes/'+s.img+'"></a></div>';
+   var slide_update = '<div class="i"><a href="'+s.link+'"><img src="http://library-test.uta.edu/usmexicowar/themes/usmw/includes/'+s.img+'"></a></div>';
    
    _home_page_slides.current_slide_html = slide_update;
    
